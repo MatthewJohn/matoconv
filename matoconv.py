@@ -13,7 +13,60 @@ from flask_cors import CORS
 
 MAX_ATTEMPTS = 3
 MAX_CONVERTERS = 5
-CONVERTER_TIMEOUT = 5
+POOL_CONVERT_TIMEOUT = 60
+RETRY_WAIT_PERIOD = 1
+EXECUTION_TIMEOUT = 10
+VALID_DESTINATIONS = ['pdf', 'docx']
+
+
+class ConversionDetails(object):
+    """Struct-like object for storing details
+    about conversions, such as file paths."""
+
+    def __init__(self, content_disp_headers, temp_directory, dest_filetype):
+        """Setup member variables."""
+        self._original_filename = 'input.html'
+        self._destination_filetype = dest_filetype
+        self._content_disp_headers = content_disp_headers
+
+        if self._content_disp_headers and len(self._content_disp_headers.split(';')) == 2:
+            self._original_filename = 'found.html'
+        self._ouptut_filename = '.'.join(self._original_filename.split('.')[:-1]) + '.' + self._destination_filetype
+
+        self._t_input_filename = 'conversion.html'
+        self._t_output_filename = 'conversion.' + self._destination_filetype
+        self._temp_directory = temp_directory
+
+    def _prepend_path(self, filename):
+        return self._temp_directory + '/' + filename
+
+    @property
+    def t_input_path(self):
+        return self._prepend_path(self._t_input_filename)
+    
+    @property
+    def t_output_path(self):
+        return self._prepend_path(self._t_output_filename)
+
+    @property
+    def t_input_filename(self):
+        return self._t_input_filename
+
+    @property
+    def t_output_filename(self):
+        return self._t_output_filename
+
+    @property
+    def ouptut_filename(self):
+        return self._ouptut_filename
+
+    @property
+    def temp_directory(self):
+        return self._temp_directory
+
+    @property
+    def destination_filetype(self):
+        return self._destination_filetype
 
 
 class Matoconv(object):
@@ -21,51 +74,71 @@ class Matoconv(object):
     INSTANCE = None
 
     def __init__(self):
+        """Instantiate flask app, cors and conversion pool."""
         self.app = flask.Flask(__name__)
         self.cors = CORS(self.app, resources={r"*": {"origins": "*"}})
-
         self.converter_pool = Pool(processes=MAX_CONVERTERS) 
 
 
-        @self.app.route('/convert/format/pdf', methods=['POST'])
-        def convert_pdf():
+        @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
+        def convert_pdf(dest_filetype):
+            """Provide endpoint for converting PDFs."""
+
+            # Check valid destiation format
+            if dest_filetype not in VALID_DESTINATIONS:
+                # 402, as we couldn't decide it was a 400 (as bad request) or
+                # 404 (as the parameter makes up the URI)
+                # UPDATE: turns out 402 means payment required. There's no
+                # going back.
+                return flask.abort(402)
+
             content_disp = flask.request.headers.get('Content-Disposition', None)
-            upload_filename = 'input.html'
-            if content_disp and len(content_disp.split(';')) == 2:
-                upload_filename = 'found.html'
-            output_filename = '.'.join(upload_filename.split('.')[:-1]) + '.pdf'
 
             with tempfile.TemporaryDirectory() as tempdir:
-                # Create input/output filenames¦
-                t_input_filename = 'conversion.html'
-                t_output_filename = 'conversion.pdf'
 
-                with open(tempdir + '/' + t_input_filename, 'wb') as fh:
+                conversion_details = ConversionDetails(
+                    content_disp_headers=content_disp,
+                    temp_directory=tempdir,
+                    dest_filetype=dest_filetype)
+
+                with open(conversion_details.t_input_path, 'wb') as fh:
                     fh.write(flask.request.get_data())
 
+                t = self.converter_pool.apply_async(
+                    self.convert_file, (conversion_details, ))
 
-                t = self.converter_pool.apply_async(self.convert_file, (t_input_filename, tempdir))
-                conv_logs = t.get()
+                # Wait for pool taks to complete and obtain logs from
+                # response
+                conv_logs = t.get(timeout=POOL_CONVERT_TIMEOUT)
+
                 for log in conv_logs:
                     Matoconv.log(log)
 
                 # Get response data
                 output_data = None
-                with open(tempdir + '/' + t_output_filename, 'rb') as fh:
+                with open(conversion_details.t_output_path, 'rb') as fh:
                     output_data = fh.read()
 
+            # Create cusotm response to handle binary data from
+            # converted file
             response = flask.make_response(output_data)
 
+            # Add content disposition header for holding
+            # output filename.
             response.headers.set(
-                'Content-Disposition', 'attachment', filename=output_filename)
+                'Content-Disposition', 'attachment',
+                filename=conversion_details.ouptut_filename)
+
             return response
 
     @staticmethod
     def log(msg):
+        """Log using the flask error log method."""
         Matoconv.get_instance().app.logger.error(msg)
 
     @staticmethod
     def get_instance(create=False):
+        """Obtain singleton instance of Mataconv."""
         if Matoconv.INSTANCE is None and create:
             Matoconv.INSTANCE = Matoconv()
         elif Matoconv.INSTANCE is None:
@@ -73,17 +146,21 @@ class Matoconv(object):
         return Matoconv.INSTANCE
 
     @staticmethod
-    def convert_file(input_file, work_dir):
+    def convert_file(conversion_details):
+        """Using libreoffice, convert input html to pdf."""
         logs = []
         try:
             attempts = 0
+            return_logs = False
             cmd = [
+                'timeout', str(EXECUTION_TIMEOUT) + 's',
                 'soffice', '--headless',
-                '--convert-to', 'pdf',
-                '-env:UserInstallation=file://' + work_dir,
+                '--convert-to', conversion_details.destination_filetype,
+                '-env:UserInstallation=file://' + conversion_details.temp_directory,
                 '--writer',
-                input_file
+                conversion_details.t_input_path
             ]
+
             while attempts < MAX_ATTEMPTS:
                 logs.append('Running cmd:')
                 logs.append(cmd)
@@ -91,25 +168,39 @@ class Matoconv(object):
                     cmd,
                     stderr=subprocess.PIPE,
                     stdout=subprocess.PIPE,
-                    cwd=work_dir)
+                    cwd=conversion_details.temp_directory)
 
+                # Capture response code, stdout and stderr
                 rc = p.wait()
                 logs.append('Got RC '  + str(rc))
                 logs.append(p.stdout.read().decode(
                     'utf8', errors='backslashreplace').replace('\r', ''))
                 logs.append(p.stderr.read().decode(
                     'utf8', errors='backslashreplace').replace('\r', ''))
-                if not rc:
+
+                # If libreoffice returned ok status code and
+                # the output file was created, break from loop
+                if not rc and os.path.isfile(conversion_details.t_output_path):
                     break
+                else:
+                    return_logs = True
 
-                if os.path.isfile(output_file):
-                    os.unlink(output_file)
+                # Remove output file if it was generated
+                if os.path.isfile(conversion_details.t_output_path):
+                    os.unlink(conversion_details.t_output_path)
 
-                time.sleep(1)
+                time.sleep(RETRY_WAIT_PERIOD)
 
                 attempts += 1
         except Exception as exc:
-            logs.append(exc)
+            # Add exception string to list of logs to be returned
+            logs.append(str(exc))
+            return_logs = True
+
         finally:
-            return logs
+            # Only return logs if an error occured
+            if return_logs:
+                return logs
+            else:
+                return []
 
