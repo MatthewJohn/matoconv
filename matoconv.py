@@ -114,7 +114,6 @@ class Matoconv(object):
                 flask.abort(404)
 
             content_disp = flask.request.headers.get('Content-Disposition', None)
-            self.log(content_disp)
 
             with tempfile.TemporaryDirectory() as tempdir:
 
