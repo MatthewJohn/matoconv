@@ -106,8 +106,8 @@ class Matoconv(object):
         self.converter_pool = Pool(processes=MAX_CONVERTERS) 
 
         @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
-        def convert_pdf(dest_filetype):
-            """Provide endpoint for converting PDFs."""
+        def convert_file(dest_filetype):
+            """Provide endpoint for converting files."""
 
             # Check valid destiation format
             if dest_filetype not in VALID_DESTINATIONS:
@@ -126,7 +126,7 @@ class Matoconv(object):
                     fh.write(flask.request.get_data())
 
                 t = self.converter_pool.apply_async(
-                    self.convert_file, (conversion_details, ))
+                    self.perform_conversion, (conversion_details, ))
 
                 # Wait for pool taks to complete and obtain logs from
                 # response
@@ -171,8 +171,8 @@ class Matoconv(object):
         return Matoconv.INSTANCE
 
     @staticmethod
-    def convert_file(conversion_details):
-        """Using libreoffice, convert input html to pdf."""
+    def perform_conversion(conversion_details):
+        """Using libreoffice, convert file to destination format."""
         logs = []
         try:
             attempts = 0
