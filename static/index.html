@@ -1,41 +1,38 @@
 
-
 <html>
 
 <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script>
 
-function send()  {
-  var me_blob = new Blob([$('#content').val()], {type: 'text/html'});
-  var req = new XMLHttpRequest();
-  var xhr = req;
-  function saveBlob(blob, fileName) {
-    var a = document.createElement('a');
-    var in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
-    a.href = window.URL.createObjectURL(in_b);
-    a.download = fileName;
-    a.dispatchEvent(new MouseEvent('click'));
-  }
+    function send()  {
+      var me_blob = new Blob([$('#content').val()], {type: 'text/html'});
+      var req = new XMLHttpRequest();
+      var xhr = req;
+      function saveBlob(blob, fileName) {
+        var a = document.createElement('a');
+        var in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
+        a.href = window.URL.createObjectURL(in_b);
+        a.download = fileName;
+        a.dispatchEvent(new MouseEvent('click'));
+      }
 
-  xhr.onload = function () {
-    saveBlob(xhr.response, 'test.' + $(".conv_type:checked").val());
-  }
-  req.responseType = "blob";
-  req.open("POST", 'http://' + $('#server').val() + '/convert/format/' + $(".conv_type:checked").val(), true);
-  req.setRequestHeader('Content-Disposition', 'attachment; filename="test.html"');
-  req.send(me_blob);
-}
-$(document).ready(() => {
-  $('#server').val(window.location.host);
-});
-    </script>
+      xhr.onload = function () {
+        saveBlob(xhr.response, 'test.' + $(".conv_type:checked").val());
+      }
+      req.responseType = "blob";
+      req.open("POST", 'http://' + $('#server').val() + '/convert/format/' + $(".conv_type:checked").val(), true);
+      req.setRequestHeader('Content-Disposition', 'attachment; filename="test.html"');
+      req.send(me_blob);
+    }
+    $(document).ready(() => {
+      $('#server').val(window.location.host);
+    });
+  </script>
 </head>
 
-
 <body>
-<form id="myform">
-PDF: <input class="conv_type" type="radio" name="filetype" value="pdf" selected />
+PDF: <input class="conv_type" type="radio" name="filetype" value="pdf" checked="true" />
 <br />
 DOCX: <input class="conv_type" type="radio" name="filetype" value="docx" />
 <br />
@@ -50,10 +47,8 @@ DOCX: <input class="conv_type" type="radio" name="filetype" value="docx" />
   </body>
 </html>
 </textarea>
-</form>
 <br />
-<button id="go" onclick="send();">Go</button>
-
+<button id="Convert" onclick="send();">Go</button>
 </body>
 
 </html>
