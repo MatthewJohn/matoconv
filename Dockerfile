@@ -1,6 +1,4 @@
 FROM node:10-buster-slim
-# Adds backports
-# Installs git, unoconv and chinese fonts
 
 RUN mkdir -p /usr/share/man/man1
 RUN apt-get update && apt-get -y install \
