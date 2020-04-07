@@ -6,68 +6,11 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script>
 
-function saveOrOpenBlob(blob, fileName) {
-    window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
-    window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function (fs) {
-        fs.root.getFile(fileName, { create: true }, function (fileEntry) {
-            fileEntry.createWriter(function (fileWriter) {
-                fileWriter.addEventListener("writeend", function () {
-                    window.location = fileEntry.toURL();
-                }, false);
-                fileWriter.write(blob, "_blank");
-            }, function () { });
-        }, function () { });
-    }, function () { });
-}
-
 
 function send()  {
   var me_blob = new Blob([$('#content').val()], {type: 'text/html'});
   var req = new XMLHttpRequest();
   var xhr = req;
-    function onload() {
-       // check for a filename
-        var filename = "";
-        var response = xhr.response;
-        var disposition = xhr.getResponseHeader('Content-Disposition');
-        if (disposition && disposition.indexOf('attachment') !== -1) {
-            var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-            var matches = filenameRegex.exec(disposition);
-            if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
-        }
-
-        var type = xhr.getResponseHeader('Content-Type');
-        var blob = new Blob([response], { type: type });
-
-        if (typeof window.navigator.msSaveBlob !== 'undefined') {
-            // IE workaround for "HTML7007: One or more blob URLs were revoked by closing the blob for which they were created. These URLs will no longer resolve as the data backing the URL has been freed."
-            window.navigator.msSaveBlob(blob, filename);
-        } else {
-            var URL = window.URL || window.webkitURL;
-            var downloadUrl = URL.createObjectURL(blob);
-
-            if (filename) {
-                // use HTML5 a[download] attribute to specify filename
-                var a = document.createElement("a");
-                // safari doesn't support this yet
-                if (typeof a.download === 'undefined') {
-                    window.location = downloadUrl;
-                } else {
-                    a.href = downloadUrl;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                }
-            } else {
-                window.location = downloadUrl;
-            }
-
-            setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
-        }
-     }
-
-  //req.onload = onload;
-
 function saveBlob(blob, fileName) {
     var a = document.createElement('a');
      var in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
@@ -77,76 +20,14 @@ function saveBlob(blob, fileName) {
 }
 
   xhr.onload = function () {
-   //var contentDispo = xhr.getResponseHeader('Content-Disposition');
-   // https://stackoverflow.com/a/23054920/
-    //var fileName = contentDispo.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)[1];
-    //saveOrOpenBlob(blob, 'test.pdf');
-    saveBlob(xhr.response, 'test.' + $(".conv_type:checked").val());
+   saveBlob(xhr.response, 'test.' + $(".conv_type:checked").val());
   }
   req.responseType = "blob";
   req.open("POST", 'http://' + $('#server').val() + '/convert/format/' + $(".conv_type:checked").val(), true);
   req.setRequestHeader('Content-Disposition', 'attachment; filename="test.html"');
-  // set headers and mime-type appropriately
-  //req.sendAsBinary(aBody);
-  req.send(me_blob);
+ req.send(me_blob);
 
 
-  /*
-  $.ajax({
-    type: "POST",
-    url: 'http://' + $('#server').val() + '/convert/format/pdf',
-    headers: {
-      'Content-Disposition': 'attachment; filename="test.html"'
-    },
-    //data: $('#content').val(),
-    data: me_blob,
-    processData: false,
-    beforeSend: function (request) {
-        request.setRequestHeader("Content-Type", 'text/html');
-    },
-    contentType: false,
-    success: function(response, status, xhr) {
-        // check for a filename
-        var filename = "";
-        var disposition = xhr.getResponseHeader('Content-Disposition');
-        if (disposition && disposition.indexOf('attachment') !== -1) {
-            var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-            var matches = filenameRegex.exec(disposition);
-            if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
-        }
-
-        var type = xhr.getResponseHeader('Content-Type');
-        var blob = new Blob([response], { type: type });
-
-        if (typeof window.navigator.msSaveBlob !== 'undefined') {
-            // IE workaround for "HTML7007: One or more blob URLs were revoked by closing the blob for which they were created. These URLs will no longer resolve as the data backing the URL has been freed."
-            window.navigator.msSaveBlob(blob, filename);
-        } else {
-            var URL = window.URL || window.webkitURL;
-            var downloadUrl = URL.createObjectURL(blob);
-
-            if (filename) {
-                // use HTML5 a[download] attribute to specify filename
-                var a = document.createElement("a");
-                // safari doesn't support this yet
-                if (typeof a.download === 'undefined') {
-                    window.location = downloadUrl;
-                } else {
-                    a.href = downloadUrl;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                }
-            } else {
-                window.location = downloadUrl;
-            }
-
-            setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
-        }
-    },
-    failure: () => {alert('adg');}
-  });
-  */
 }
     </script>
 </head>
