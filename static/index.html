@@ -1,0 +1,59 @@
+
+
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+
+function send()  {
+  var me_blob = new Blob([$('#content').val()], {type: 'text/html'});
+  var req = new XMLHttpRequest();
+  var xhr = req;
+  function saveBlob(blob, fileName) {
+    var a = document.createElement('a');
+    var in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
+    a.href = window.URL.createObjectURL(in_b);
+    a.download = fileName;
+    a.dispatchEvent(new MouseEvent('click'));
+  }
+
+  xhr.onload = function () {
+    saveBlob(xhr.response, 'test.' + $(".conv_type:checked").val());
+  }
+  req.responseType = "blob";
+  req.open("POST", 'http://' + $('#server').val() + '/convert/format/' + $(".conv_type:checked").val(), true);
+  req.setRequestHeader('Content-Disposition', 'attachment; filename="test.html"');
+  req.send(me_blob);
+}
+$(document).ready(() => {
+  $('#server').val(window.location.host);
+});
+    </script>
+</head>
+
+
+<body>
+<form id="myform">
+PDF: <input class="conv_type" type="radio" name="filetype" value="pdf" selected />
+<br />
+DOCX: <input class="conv_type" type="radio" name="filetype" value="docx" />
+<br />
+<input value="" type="text" name="server" id="server" />
+<br />
+<textarea name="content" id="content">
+<html>
+  <body>
+      <h1>Welcome</h1>
+      <h3>This is a test page for matoconv</h3>
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAb1BMVEXMzMwAAAD////S0tLu7u4ZGRnz8/Pw8PD39/d5eXnr6+v7+/v8/Px/f3/19fXGxsaUlJTi4uJycnITExOfn58XFxcICAjc3NwdHR3BwcGWlpaPj4+Hh4fZ2dmioqKIiIglJSVLS0tra2tRUVG4uLjx5VRRAAAHm0lEQVR4nO2da3uiPBCGpVABredDV1Hb7tv//xtfJRNkxoAQyAF3nv2wVxFDbienSSZhNGKxWCwWi8VisVgsFovFYrFYLBaLxWINVwsNuc5zG4Wz/XtrBaHrbLdQmAYaYkKfxIRM6KNCpLMW4Rkn4hoJK7zMkNY6wkmcXDNh0WKZEns00ZmY9OAaCimcEUKNMhbiJDZMaFdM2CgNJuxd9f0SaQcJ4bo7YUAeoZPJJw+UHYDSbwvX3Y1WrwUBrs+GjsGLgqdOmnSAM0eEaYcizYRM2FVMiLLRkpB0AIvy1Sr/yDyhsvMofugRuvxM4L6kae7TpJAW9Y9S5Plc+nfn0jrfCnqncIs/bZYN+ePNzspfC0T9o94Bic2oSUN006hVUVoo734gtOyDHzZKQpA6z1ViQiY0IyZsRiiWgA77XMEMLSCN0mBfkh5hh8Wmw/sePR+nRfOsTuM6iMlv2whd/8dIi0NZOmthjYYplYj48ej3pnneqFN+MlHdQ7HsREgyW5vXipSZkAmfiwlbyCJh2GQATsbHUmqXJ2ySpB7hZZ3etN5jwdUKxwQ7NbOKlOHT47aso9LloW6a+rmhyFX6g3vpH3E1VWaj5S8NajXnt5+/lTXfi8t4cpXOU1YMU4ibDjqda/LaLtPtCKH8v0eIMHoXl9Pa4WHtQExvMoUJmZAJPSKEJvigdEiEp3F1W9ATrjcrPI+GhMJrGFFHVF4nz8c+XStC8uVAxNXtiUM8C3J/5Xs1H981X33nVyu85wpCuDkUKQZZUkpxnGzFZeIQhSJbfzZ5JoPdr4bLWb/oKTO9i1Gm413dzc8IhZbopretsvzT5VSdAWAzwlZVyyBhp3ULJmRCJuyDUG8d//IXrf1s/SLEmVtrOdO1nqh1wj1haOR5d5FzQuNiQiZkQiZ8QcIu08dMyIRMyISeE+7HONOQnVQZMVZFKG6We2YyTHhxRXiBVZ7suLwqG4nsJPlfy+NMfAhrLk8I/4NgPPHdbIGTOtUvJxlExAtVW/zDH+FyI0IZKYOTGAfIwpbDd+5aqAmXbQh39YTO2JiQCZnw3yW0fdKEbUL7QaBMyIRMyISvRAhhXhVbd16AcCEPk0DBf9sTXDbXMVojPMCfR3yXdNPMbfy2RwheJJnjgAcZ3NrOhEzIhPe21DXhcR7dJGPAZBMnAvxGay1C2I2UR+4tfoGQtKWS0KAbBW6aOGRv9w7Tp1MRdjeFqLtdLSGE6uEIuZsNy1uaNhMRIji1bUNQEXyDJ4jf4OqmlpCY5U6INFbeNQxCUrWYkAmZ0BvCpBGh+ZG3AcJFlq85ZWLJafajTjlDi1wGvadmhPX9ISHM4EvC5z2falM27wEbIMRV60nK1jbNMyETDorw46MnwoVtQhoUjcKPi3zEHx9lxACpHeEITx8S16N/Qrp5VYqUpZwQmfGmowahFPGtDRKqd3rT2gKEhFGHUO5H849wqkBcvhbh9JHxpQinUwXi6xFKxlcgpONjSYjNKAfThBCuklA9SRjYJoRtscEyK7S8/iM+TkGIzLgAXydBmUxwqB4h3OCYQCnwrY4Qz9fjWX+FDT/midQVIyYmLRGqGtUmAsI/c+Wnsjicw77dpoIwiaVuW5snD4Q5uLI2tiMklZZ8auA1AwXhPIpLjA+EYNsOZvSAsIyoJEweiurQCO+MD4TRvYrqmtEPwugZYYfaCAw7Z4TjKCoxTjab3VXv8vS6O6G2GY/5cQm7b3eEE4yYK1oGD4S6ZkwitFDngnCCGW+9xlTOzEbJfK5C1Os43BESxDhOJOFkflNXM3pASBkJYQ1iV0YLhFDzMCIlNMdokRAxlgjHZhEtECaicYkRYpLdCcdGGY/mCOVReDev6erUHKKyGceH7JgrEmcN9Y+YXFConomZYPBW5A6zrxiV1DGgFOcpEcTOjap6V5wJyV2CmbLFge7RgBnVOxutEFYhPmccDKEdM7olfGLGXmqjfcKvMqEFM9onPK2E2tZG3cG4PcL7iXy7ze525p4lM06UZ90ZVPGCl5Wl2hj5QGjUjM5suEOEBs3ojvBzMtFibNviuKuHlNDUEMcZYbASOMZro31CeWrE6eum02/UhxlrGK0T0lMjMtNDHPuEoIWasH8zuieMJpNGjLqI1nv854Q9940e2rBgjHsxo5+EffaNHhCuVi0Y25vRPeFk1QqxdW30g9CkGX0h1DBjQ/ffG0JjZvSI0FBtdN/j3wnNmNE9IYxL+zcjEMZ7R4QjcKJmX6ebvvooqqjFeRuhbVB9huo1FHnv0qc+orqo3jdNGzubvBnnA2FftdHZOcINCPsxo9eEvZjRc8IezOg7YXcz+k/YtW8cAKESsbn77+wc4RaE3WrjMAi71Maix/ecUL82DoZQ24wDItSsjd4RAkcfZgTfwpeWBuL6UtgR9dsdMYZT9b7q3sNrExEvRc0qrNicsdhv5PrEciJ55tipirAx4p3QFzah54SNGQdM2BBxyISNGAdNeO1MqgAHYEOY8zutPivU2LQrPwmLuL7Nn6761nkBrjVVbfxuI5NHIXZXL4TGj+/qIiZkwn+D0Pwxel0UbsnLbHXkdVtadahUK7lmYLFYLBbS/8N2qmZohs12AAAAAElFTkSuQmCC" />
+  </body>
+</html>
+</textarea>
+</form>
+<br />
+<button id="go" onclick="send();">Go</button>
+
+</body>
+
+</html>

@@ -126,6 +126,10 @@ class Matoconv(object):
 
             return response
 
+        @self.app.route('/', methods=['GET'])
+        def index():  # pragma: no cover
+            return flask.send_from_directory('static', 'index.html')
+
     @staticmethod
     def log(msg):
         """Log using the flask error log method."""
