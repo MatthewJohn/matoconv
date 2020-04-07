@@ -2,7 +2,9 @@
 
 # Matoconv
 
-Re-implementation of unoconv-server, to avoid unoconv conversion errors (pyuno-bridge etc.)
+API to convert HTML to PDF/DOCX files.
+
+Re-implementation of unoconv-server, to avoid unoconv conversion errors (pyuno-bridge etc.).
 
 
 ## Example
