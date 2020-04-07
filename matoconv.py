@@ -11,11 +11,11 @@ import flask
 from flask_cors import CORS
 
 
-MAX_ATTEMPTS = 3
-MAX_CONVERTERS = 5
-POOL_CONVERT_TIMEOUT = 60
-RETRY_WAIT_PERIOD = 1
-EXECUTION_TIMEOUT = 10
+MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 3))
+MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
+POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
+RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
+EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 10))
 VALID_DESTINATIONS = ['pdf', 'docx']
 
 
