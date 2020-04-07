@@ -20,4 +20,4 @@ RUN mkdir /app
 WORKDIR /app
 ADD . /app/
 
-ENTRYPOINT python3 -u /app/start.py
+ENTRYPOINT python3 -u /app/server.py
