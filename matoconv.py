@@ -29,8 +29,23 @@ class ConversionDetails(object):
         self._destination_filetype = dest_filetype
         self._content_disp_headers = content_disp_headers
 
-        if self._content_disp_headers and len(self._content_disp_headers.split(';')) == 2:
-            self._original_filename = 'found.html'
+        self._original_filename = 'input.html'
+        try:
+            # Example content-disposition header:
+            #    attachment; filename="example.html"
+            # Perform the following:
+            #   Get data from latter half of header after semi-colon
+            #   Strip white-space
+            #   Split by equals '=' and take second element
+            #   Remove any double-quotes
+            self._original_filename = self._content_disp_headers.split(';')[1].strip().split('=')[1].replace('"', '')
+        except ValueError:
+            # If the heaader isn't in the right format, ignore it and
+            # use default 'input.html'
+            pass
+
+        # Generate output filename, removing the extension from the original filename
+        # and adding output filetype extension.
         self._ouptut_filename = '.'.join(self._original_filename.split('.')[:-1]) + '.' + self._destination_filetype
 
         self._t_input_filename = 'conversion.html'
@@ -76,7 +91,7 @@ class Matoconv(object):
     def __init__(self):
         """Instantiate flask app, cors and conversion pool."""
         self.app = flask.Flask(__name__)
-        self.cors = CORS(self.app, resources={r"*": {"origins": "*"}})
+        self.cors = CORS(self.app, resources={r"*": {"origins": ""}})
         self.converter_pool = Pool(processes=MAX_CONVERTERS) 
 
         @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
@@ -88,6 +103,7 @@ class Matoconv(object):
                 flask.abort(404)
 
             content_disp = flask.request.headers.get('Content-Disposition', None)
+            self.log(content_disp)
 
             with tempfile.TemporaryDirectory() as tempdir:
 

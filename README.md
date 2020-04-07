@@ -2,7 +2,7 @@
 
 # Matoconv
 
-Re-implementation of unoconv-server, to avoid unoconv conversion error (pyuno-bridge etc.)
+Re-implementation of unoconv-server, to avoid unoconv conversion errors (pyuno-bridge etc.)
 
 
 ## Example
