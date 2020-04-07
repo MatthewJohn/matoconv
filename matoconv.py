@@ -35,33 +35,24 @@ class Matoconv(object):
                 upload_filename = 'found.html'
             output_filename = '.'.join(upload_filename.split('.')[:-1]) + '.pdf'
 
-            # Generate temp filename
-            temp_fh = tempfile.NamedTemporaryFile()
-            temp_filename = temp_fh.name
-            temp_fh.close()
+            with tempfile.TemporaryDirectory() as tempdir:
+                # Create input/output filenames¦
+                t_input_filename = 'conversion.html'
+                t_output_filename = 'conversion.pdf'
 
-            # Create input/output filenames¦
-            output_dir = os.path.dirname(temp_filename)
-            t_input_filename = temp_filename + '.html'
-            t_output_filename = temp_filename + '.pdf'
-
-            with open(t_input_filename, 'wb') as fh:
-                fh.write(flask.request.get_data())
+                with open(tempdir + '/' + t_input_filename, 'wb') as fh:
+                    fh.write(flask.request.get_data())
 
 
-            t = self.converter_pool.apply_async(self.convert_file, (t_input_filename, t_output_filename, output_dir))
-            conv_logs = t.get()
-            for log in conv_logs:
-                Matoconv.log(log)
+                t = self.converter_pool.apply_async(self.convert_file, (t_input_filename, tempdir))
+                conv_logs = t.get()
+                for log in conv_logs:
+                    Matoconv.log(log)
 
-            # Get response data
-            output_data = None
-            with open(t_output_filename, 'rb') as fh:
-                output_data = fh.read()
-
-            # Remove old files
-            os.unlink(t_input_filename)
-            os.unlink(t_output_filename)
+                # Get response data
+                output_data = None
+                with open(tempdir + '/' + t_output_filename, 'rb') as fh:
+                    output_data = fh.read()
 
             response = flask.make_response(output_data)
 
@@ -82,15 +73,15 @@ class Matoconv(object):
         return Matoconv.INSTANCE
 
     @staticmethod
-    def convert_file(input_file, output_file, output_dir):
+    def convert_file(input_file, work_dir):
         logs = []
         try:
             attempts = 0
             cmd = [
                 'soffice', '--headless',
                 '--convert-to', 'pdf',
+                '-env:UserInstallation=file://' + work_dir,
                 '--writer',
-                '--outdir', output_dir,
                 input_file
             ]
             while attempts < MAX_ATTEMPTS:
@@ -99,7 +90,8 @@ class Matoconv(object):
                 p = subprocess.Popen(
                     cmd,
                     stderr=subprocess.PIPE,
-                    stdout=subprocess.PIPE)
+                    stdout=subprocess.PIPE,
+                    cwd=work_dir)
 
                 rc = p.wait()
                 logs.append('Got RC '  + str(rc))
