@@ -18,4 +18,6 @@ RUN mkdir /app
 WORKDIR /app
 ADD . /app/
 
+ENV LISTEN_PORT 8091
+
 ENTRYPOINT python3 -u /app/server.py
