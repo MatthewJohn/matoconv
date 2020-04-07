@@ -79,18 +79,13 @@ class Matoconv(object):
         self.cors = CORS(self.app, resources={r"*": {"origins": "*"}})
         self.converter_pool = Pool(processes=MAX_CONVERTERS) 
 
-
         @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
         def convert_pdf(dest_filetype):
             """Provide endpoint for converting PDFs."""
 
             # Check valid destiation format
             if dest_filetype not in VALID_DESTINATIONS:
-                # 402, as we couldn't decide it was a 400 (as bad request) or
-                # 404 (as the parameter makes up the URI)
-                # UPDATE: turns out 402 means payment required. There's no
-                # going back.
-                return flask.abort(402)
+                flask.abort(404)
 
             content_disp = flask.request.headers.get('Content-Disposition', None)
 
