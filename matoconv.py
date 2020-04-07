@@ -48,39 +48,50 @@ class ConversionDetails(object):
         # and adding output filetype extension.
         self._ouptut_filename = '.'.join(self._original_filename.split('.')[:-1]) + '.' + self._destination_filetype
 
+        # Create temporary file names for connversion
         self._t_input_filename = 'conversion.html'
         self._t_output_filename = 'conversion.' + self._destination_filetype
+
+        # Store temporary working directory
         self._temp_directory = temp_directory
 
     def _prepend_path(self, filename):
+        """Prepend filename with temporary directory."""
         return self._temp_directory + '/' + filename
 
     @property
     def t_input_path(self):
+        """Property for full path of temporary input file."""
         return self._prepend_path(self._t_input_filename)
     
     @property
     def t_output_path(self):
+        """Property for full path of temporary output file."""
         return self._prepend_path(self._t_output_filename)
 
     @property
     def t_input_filename(self):
+        """Property for name of temporary input file."""
         return self._t_input_filename
 
     @property
     def t_output_filename(self):
+        """Property for name of temporary output file."""
         return self._t_output_filename
 
     @property
     def ouptut_filename(self):
+        """Property for name of output file to be returned."""
         return self._ouptut_filename
 
     @property
     def temp_directory(self):
+        """Property for path of the temporary directory for working."""
         return self._temp_directory
 
     @property
     def destination_filetype(self):
+        """Property for destination file type."""
         return self._destination_filetype
 
 
