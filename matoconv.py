@@ -95,7 +95,6 @@ class ConversionDetails(object):
 
         raise UnknownOutputFiletype('Unknown output filetype')
 
-
     @property
     def t_input_path(self):
         """Property for full path of temporary input file."""
