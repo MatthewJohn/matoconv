@@ -19,6 +19,18 @@ EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 10))
 VALID_DESTINATIONS = ['pdf', 'docx']
 
 
+class MatoconvException(Exception):
+    """Base exception for matoconv."""
+
+    pass
+
+
+class UnknownOutputFiletype(MatoconvException):
+    """Unknown output format when attempting to obtain mimetype."""
+
+    pass
+
+
 class ConversionDetails(object):
     """Struct-like object for storing details
     about conversions, such as file paths."""
@@ -58,6 +70,22 @@ class ConversionDetails(object):
     def _prepend_path(self, filename):
         """Prepend filename with temporary directory."""
         return self._temp_directory + '/' + filename
+
+    @property
+    def response_mime_type(self):
+        """Return response mime type."""
+        # Define lookup table for mimetypes to avoid
+        # overhead of use external function, such as
+        # mimetypes.guess_type
+        mime_types = {
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'pdf': 'application/pdf'
+        }
+        if self._destination_filetype in mime_types:
+            return mime_types[self._destination_filetype]
+
+        raise UnknownOutputFiletype('Unknown output filetype')
+
 
     @property
     def t_input_path(self):
@@ -142,13 +170,15 @@ class Matoconv(object):
 
             # Create cusotm response to handle binary data from
             # converted file
-            response = flask.make_response(output_data)
+            response = flask.make_response(
+                output_data,
+                content_type=conversion_details.response_mime_type)
 
             # Add content disposition header for holding
             # output filename.
             response.headers.set(
                 'Content-Disposition', 'attachment',
-                filename=conversion_details.ouptut_filename)
+                filename='"{0}"'.format(conversion_details.ouptut_filename))
 
             return response
 
