@@ -16,7 +16,10 @@ MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
 POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
 RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
 EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 10))
-VALID_DESTINATIONS = ['pdf', 'docx']
+DST_FORMATS = {
+  'pdf': {'content_type': 'application/pdf'},
+  'docx': {'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
+}
 
 
 class MatoconvException(Exception):
@@ -90,8 +93,8 @@ class ConversionDetails(object):
             'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'pdf': 'application/pdf'
         }
-        if self._destination_filetype in mime_types:
-            return mime_types[self._destination_filetype]
+        if self._destination_filetype in DST_FORMATS:
+            return DST_FORMATS[self._destination_filetype]['content_type']
 
         raise UnknownOutputFiletype('Unknown output filetype')
 
@@ -146,7 +149,7 @@ class Matoconv(object):
             """Provide endpoint for converting files."""
 
             # Check valid destiation format
-            if dest_filetype not in VALID_DESTINATIONS:
+            if dest_filetype not in DST_FORMATS:
                 flask.abort(404)
 
             content_disp = flask.request.headers.get('Content-Disposition', None)
