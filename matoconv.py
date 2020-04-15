@@ -170,9 +170,8 @@ class Matoconv(object):
 
             # Create cusotm response to handle binary data from
             # converted file
-            response = flask.make_response(
-                output_data,
-                content_type=conversion_details.response_mime_type)
+            response = flask.make_response(output_data)
+            response.content_type = conversion_details.response_mime_type
 
             # Add content disposition header for holding
             # output filename.
