@@ -31,6 +31,15 @@ class UnknownOutputFiletype(MatoconvException):
     pass
 
 
+class FlaskNoName(flask.Flask):
+    """Remove server name header."""
+
+    def process_response(self, response):
+        """Override response to remove server name"""
+        response.headers['server'] = __name__
+        return(response)
+
+
 class ConversionDetails(object):
     """Struct-like object for storing details
     about conversions, such as file paths."""
@@ -129,7 +138,7 @@ class Matoconv(object):
 
     def __init__(self):
         """Instantiate flask app, cors and conversion pool."""
-        self.app = flask.Flask(__name__)
+        self.app = FlaskNoName(__name__)
         self.cors = CORS(self.app, resources={r"*": {"origins": ""}})
         self.converter_pool = Pool(processes=MAX_CONVERTERS) 
 
