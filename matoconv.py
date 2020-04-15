@@ -178,7 +178,7 @@ class Matoconv(object):
             # output filename.
             response.headers.set(
                 'Content-Disposition', 'attachment',
-                filename='"{0}"'.format(conversion_details.ouptut_filename))
+                filename=conversion_details.ouptut_filename)
 
             return response
 
