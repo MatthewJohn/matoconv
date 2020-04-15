@@ -16,7 +16,31 @@ MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
 POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
 RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
 EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 10))
-VALID_DESTINATIONS = ['pdf', 'docx']
+DST_FORMATS = {
+  'pdf': {'content_type': 'application/pdf'},
+  'docx': {'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
+}
+
+
+class MatoconvException(Exception):
+    """Base exception for matoconv."""
+
+    pass
+
+
+class UnknownOutputFiletype(MatoconvException):
+    """Unknown output format when attempting to obtain mimetype."""
+
+    pass
+
+
+class FlaskNoName(flask.Flask):
+    """Remove server name header."""
+
+    def process_response(self, response):
+        """Override response to remove server name"""
+        response.headers['server'] = __name__
+        return(response)
 
 
 class ConversionDetails(object):
@@ -60,6 +84,21 @@ class ConversionDetails(object):
         return self._temp_directory + '/' + filename
 
     @property
+    def response_mime_type(self):
+        """Return response mime type."""
+        # Define lookup table for mimetypes to avoid
+        # overhead of use external function, such as
+        # mimetypes.guess_type
+        mime_types = {
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'pdf': 'application/pdf'
+        }
+        if self._destination_filetype in DST_FORMATS:
+            return DST_FORMATS[self._destination_filetype]['content_type']
+
+        raise UnknownOutputFiletype('Unknown output filetype')
+
+    @property
     def t_input_path(self):
         """Property for full path of temporary input file."""
         return self._prepend_path(self._t_input_filename)
@@ -101,7 +140,7 @@ class Matoconv(object):
 
     def __init__(self):
         """Instantiate flask app, cors and conversion pool."""
-        self.app = flask.Flask(__name__)
+        self.app = FlaskNoName(__name__)
         self.cors = CORS(self.app, resources={r"*": {"origins": ""}})
         self.converter_pool = Pool(processes=MAX_CONVERTERS) 
 
@@ -110,7 +149,7 @@ class Matoconv(object):
             """Provide endpoint for converting files."""
 
             # Check valid destiation format
-            if dest_filetype not in VALID_DESTINATIONS:
+            if dest_filetype not in DST_FORMATS:
                 flask.abort(404)
 
             content_disp = flask.request.headers.get('Content-Disposition', None)
@@ -143,6 +182,7 @@ class Matoconv(object):
             # Create cusotm response to handle binary data from
             # converted file
             response = flask.make_response(output_data)
+            response.content_type = conversion_details.response_mime_type
 
             # Add content disposition header for holding
             # output filename.
