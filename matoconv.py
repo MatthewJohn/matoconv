@@ -18,7 +18,8 @@ RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
 EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 10))
 DST_FORMATS = {
   'pdf': {'content_type': 'application/pdf'},
-  'docx': {'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
+  'docx': {'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},
+  'html': {'content_type': 'text/html'}
 }
 
 
@@ -30,6 +31,12 @@ class MatoconvException(Exception):
 
 class UnknownOutputFiletype(MatoconvException):
     """Unknown output format when attempting to obtain mimetype."""
+
+    pass
+
+
+class CannotDetectFileType(MatoconvException):
+    """Cannot detect input file type"""
 
     pass
 
@@ -49,11 +56,11 @@ class ConversionDetails(object):
 
     def __init__(self, content_disp_headers, temp_directory, dest_filetype):
         """Setup member variables."""
-        self._original_filename = 'input.html'
         self._destination_filetype = dest_filetype
         self._content_disp_headers = content_disp_headers
 
-        self._original_filename = 'input.html'
+        self._original_filename = None
+        self._source_filetype = None
         try:
             # Example content-disposition header:
             #    attachment; filename="example.html"
@@ -63,17 +70,16 @@ class ConversionDetails(object):
             #   Split by equals '=' and take second element
             #   Remove any double-quotes
             self._original_filename = self._content_disp_headers.split(';')[1].strip().split('=')[1].replace('"', '')
+            self._source_filetype = self._original_filename.split('.')[-1]
         except ValueError:
-            # If the heaader isn't in the right format, ignore it and
-            # use default 'input.html'
-            pass
+            raise CannotDetectFileType('Cannot detect input file type')
 
         # Generate output filename, removing the extension from the original filename
         # and adding output filetype extension.
         self._ouptut_filename = '.'.join(self._original_filename.split('.')[:-1]) + '.' + self._destination_filetype
 
         # Create temporary file names for connversion
-        self._t_input_filename = 'conversion.html'
+        self._t_input_filename = 'conversion.' + self._source_filetype
         self._t_output_filename = 'conversion.' + self._destination_filetype
 
         # Store temporary working directory
@@ -132,6 +138,11 @@ class ConversionDetails(object):
     def destination_filetype(self):
         """Property for destination file type."""
         return self._destination_filetype
+
+    @property
+    def source_filetype(self):
+        """Property for source file type."""
+        return self._source_filetype
 
 
 class Matoconv(object):
