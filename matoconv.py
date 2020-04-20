@@ -15,7 +15,7 @@ MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 3))
 MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
 POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
 RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
-EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 10))
+EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 20))
 DST_FORMATS = {
   'pdf': {'content_type': 'application/pdf'},
   'docx': {'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},
