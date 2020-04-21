@@ -176,7 +176,6 @@ class ConversionDetails(object):
         # Create temporary file names for connversion
         self._t_input_filename = 'conversion.' + self.source_format.extension
         self._t_output_filename = 'conversion.' + self.destination_format.extension
-        self._t_output_filename = 'conversion.html'
 
         # Store temporary working directory
         self._temp_directory = temp_directory
