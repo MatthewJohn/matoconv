@@ -11,11 +11,13 @@ import flask
 from flask_cors import CORS
 
 
-MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 1))
-MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
-POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
-RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
-EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 20))
+class Config(object):
+
+    MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 1))
+    MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
+    POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
+    RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
+    EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 20))
 
 
 class Format(object):
@@ -233,7 +235,7 @@ class Matoconv(object):
         """Instantiate flask app, cors and conversion pool."""
         self.app = FlaskNoName(__name__)
         self.cors = CORS(self.app, resources={r"*": {"origins": ""}})
-        self.converter_pool = Pool(processes=MAX_CONVERTERS)
+        self.converter_pool = Pool(processes=Config.MAX_CONVERTERS)
 
         FormatFactory.register_formats()
 
@@ -263,7 +265,7 @@ class Matoconv(object):
 
                 # Wait for pool taks to complete and obtain logs from
                 # response
-                conv_logs = t.get(timeout=POOL_CONVERT_TIMEOUT)
+                conv_logs = t.get(timeout=Config.POOL_CONVERT_TIMEOUT)
 
                 for log in conv_logs:
                     Matoconv.log(log)
@@ -323,7 +325,7 @@ class Matoconv(object):
             env['DISPLAY'] = ':99'
 
             cmd = [
-                'timeout', str(EXECUTION_TIMEOUT) + 's',
+                'timeout', str(ConfigEXECUTION_TIMEOUT) + 's',
                 'soffice',
                 '--headless',
                 '--convert-to', conversion_details.destination_format.output_filter,
@@ -338,7 +340,7 @@ class Matoconv(object):
                 conversion_details.t_input_path
             ]
 
-            while attempts < MAX_ATTEMPTS:
+            while attempts < Config.MAX_ATTEMPTS:
                 logs.append('Running cmd:')
                 logs.append(cmd)
                 p = subprocess.Popen(
@@ -368,7 +370,7 @@ class Matoconv(object):
                 if os.path.isfile(conversion_details.t_output_path):
                     os.unlink(conversion_details.t_output_path)
 
-                time.sleep(RETRY_WAIT_PERIOD)
+                time.sleep(Config.RETRY_WAIT_PERIOD)
 
                 attempts += 1
         except Exception as exc:
