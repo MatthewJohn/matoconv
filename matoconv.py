@@ -11,20 +11,94 @@ import flask
 from flask_cors import CORS
 
 
-MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 3))
+MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 1))
 MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
 POOL_CONVERT_TIMEOUT = int(os.environ.get('POOL_CONVERT_TIMEOUT', 60))
 RETRY_WAIT_PERIOD = int(os.environ.get('RETRY_WAIT_PERIOD', 1))
 EXECUTION_TIMEOUT = int(os.environ.get('EXECUTION_TIMEOUT', 20))
-DST_FORMATS = {
-  'pdf': {'content_type': 'application/pdf'},
-  'docx': {'content_type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},
-  'html': {'content_type': 'text/html'}
-}
+
+
+class Format(object):
+
+    CONTENT_TYPE = None
+    EXTENSION = None
+    OUTPUT_FILTER = None
+
+    @property
+    def content_type(self):
+        return self.CONTENT_TYPE
+
+    @property
+    def extension(self):
+        return self.EXTENSION
+
+    @property
+    def output_filter(self):
+        return self.OUTPUT_FILTER
+
+
+class PDF(Format):
+
+    CONTENT_TYPE = 'application/pdf'
+    EXTENSION = 'pdf'
+    OUTPUT_FILTER = 'pdf'
+
+
+class DOCX(Format):
+
+    CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    EXTENSION = 'docx'
+    OUTPUT_FILTER = 'docx'
+
+
+class HTML(Format):
+
+    CONTENT_TYPE = 'text/html'
+    EXTENSION = 'html'
+    OUTPUT_FILTER = 'html'
+
+
+class FormatFactory(object):
+
+    FORMATS = []
+
+    @staticmethod
+    def _register_format(format_cls):
+        """Register a format"""
+        FormatFactory.FORMATS.append(format_cls)
+
+    @staticmethod
+    def register_formats():
+        """Register all formats."""
+        FormatFactory._register_format(PDF)
+        FormatFactory._register_format(DOCX)
+        FormatFactory._register_format(HTML)
+
+    @staticmethod
+    def by_extension(extension):
+        """Return format based on extension"""
+        # If extension is empty, return None
+        if not extension:
+            return None
+
+        # Look through formats to matching extension
+        for ext in FormatFactory.FORMATS:
+            if ext().extension == extension:
+                # Return instance of class, so that properties work
+                return ext()
+
+        # Default return None
+        return None
 
 
 class MatoconvException(Exception):
     """Base exception for matoconv."""
+
+    pass
+
+
+class UnknownFileType(Exception):
+    """Unknown filetype."""
 
     pass
 
@@ -54,13 +128,13 @@ class ConversionDetails(object):
     """Struct-like object for storing details
     about conversions, such as file paths."""
 
-    def __init__(self, content_disp_headers, temp_directory, dest_filetype):
+    def __init__(self, content_disp_headers, temp_directory, dest_format):
         """Setup member variables."""
-        self._destination_filetype = dest_filetype
+        self._destination_format = dest_format
         self._content_disp_headers = content_disp_headers
 
         self._original_filename = None
-        self._source_filetype = None
+        self._source_format = None
         try:
             # Example content-disposition header:
             #    attachment; filename="example.html"
@@ -70,17 +144,21 @@ class ConversionDetails(object):
             #   Split by equals '=' and take second element
             #   Remove any double-quotes
             self._original_filename = self._content_disp_headers.split(';')[1].strip().split('=')[1].replace('"', '')
-            self._source_filetype = self._original_filename.split('.')[-1]
+            self._source_format = FormatFactory.by_extension(self._original_filename.split('.')[-1])
         except ValueError:
             raise CannotDetectFileType('Cannot detect input file type')
 
+        if self._source_format is None:
+            raise UnknownFileType('Unsupported source format')
+
         # Generate output filename, removing the extension from the original filename
         # and adding output filetype extension.
-        self._ouptut_filename = '.'.join(self._original_filename.split('.')[:-1]) + '.' + self._destination_filetype
+        self._ouptut_filename = '.'.join(self.original_filename.split('.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
-        self._t_input_filename = 'conversion.' + self._source_filetype
-        self._t_output_filename = 'conversion.' + self._destination_filetype
+        self._t_input_filename = 'conversion.' + self.source_format.extension
+        self._t_output_filename = 'conversion.' + self.destination_format.extension
+        self._t_output_filename = 'conversion.html'
 
         # Store temporary working directory
         self._temp_directory = temp_directory
@@ -90,19 +168,14 @@ class ConversionDetails(object):
         return self._temp_directory + '/' + filename
 
     @property
+    def original_filename(self):
+        """Return the original filename."""
+        return self._original_filename
+
+    @property
     def response_mime_type(self):
         """Return response mime type."""
-        # Define lookup table for mimetypes to avoid
-        # overhead of use external function, such as
-        # mimetypes.guess_type
-        mime_types = {
-            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'pdf': 'application/pdf'
-        }
-        if self._destination_filetype in DST_FORMATS:
-            return DST_FORMATS[self._destination_filetype]['content_type']
-
-        raise UnknownOutputFiletype('Unknown output filetype')
+        return self._destination_format.content_type
 
     @property
     def t_input_path(self):
@@ -135,32 +208,36 @@ class ConversionDetails(object):
         return self._temp_directory
 
     @property
-    def destination_filetype(self):
-        """Property for destination file type."""
-        return self._destination_filetype
+    def destination_format(self):
+        """Property for destination file format class."""
+        return self._destination_format
 
     @property
-    def source_filetype(self):
-        """Property for source file type."""
-        return self._source_filetype
+    def source_format(self):
+        """Property for source file format class."""
+        return self._source_format
 
 
 class Matoconv(object):
 
     INSTANCE = None
+    DEST_FORMATS = {}
 
     def __init__(self):
         """Instantiate flask app, cors and conversion pool."""
         self.app = FlaskNoName(__name__)
         self.cors = CORS(self.app, resources={r"*": {"origins": ""}})
-        self.converter_pool = Pool(processes=MAX_CONVERTERS) 
+        self.converter_pool = Pool(processes=MAX_CONVERTERS)
+
+        FormatFactory.register_formats()
 
         @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
         def convert_file(dest_filetype):
             """Provide endpoint for converting files."""
 
-            # Check valid destiation format
-            if dest_filetype not in DST_FORMATS:
+            # Check valid destination format
+            dest_format = FormatFactory.by_extension(dest_filetype)
+            if dest_format is None:
                 flask.abort(404)
 
             content_disp = flask.request.headers.get('Content-Disposition', None)
@@ -170,7 +247,7 @@ class Matoconv(object):
                 conversion_details = ConversionDetails(
                     content_disp_headers=content_disp,
                     temp_directory=tempdir,
-                    dest_filetype=dest_filetype)
+                    dest_format=dest_format)
 
                 with open(conversion_details.t_input_path, 'wb') as fh:
                     fh.write(flask.request.get_data())
@@ -228,10 +305,12 @@ class Matoconv(object):
         try:
             attempts = 0
             return_logs = False
+
             cmd = [
                 'timeout', str(EXECUTION_TIMEOUT) + 's',
-                'soffice', '--headless',
-                '--convert-to', conversion_details.destination_filetype,
+                'soffice',
+                '--headless',
+                '--convert-to', conversion_details.destination_format.output_filter,
                 '-env:UserInstallation=file://' + conversion_details.temp_directory,
                 '--writer',
                 conversion_details.t_input_path
