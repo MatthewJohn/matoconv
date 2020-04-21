@@ -174,9 +174,9 @@ class ConversionDetails(object):
         self._ouptut_filename = '.'.join(self.original_filename.split('.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
-        self._t_input_filename = 'conversion.' + self.source_format.extension
-        self._t_output_filename = 'conversion.' + self.destination_format.extension
-        self._t_output_filename = 'conversion.html'
+        self._t_extless_filename = 'temporary'
+        self._t_input_filename = self.t_extless_filename + '.' + self.source_format.extension
+        self._t_output_filename = self.t_extless_filename + '.' + self.destination_format.extension
 
         # Store temporary working directory
         self._temp_directory = temp_directory
@@ -214,6 +214,16 @@ class ConversionDetails(object):
     def t_output_filename(self):
         """Property for name of temporary output file."""
         return self._t_output_filename
+
+    @property
+    def t_extless_filename(self):
+        """Property for name of temporary filename without extension."""
+        return self._t_extless_filename
+
+    @property
+    def t_extless_path(self):
+        """Property for name of temporary path without extension."""
+        return self._prepend_path(self._t_extless_filename)
 
     @property
     def ouptut_filename(self):
@@ -319,20 +329,39 @@ class Matoconv(object):
         return Matoconv.INSTANCE
 
     @staticmethod
-    def perform_conversion(conversion_details):
-        """Using libreoffice, convert file to destination format."""
-        logs = []
-        try:
-            attempts = 0
-            return_logs = False
+    def get_conversion_command(conversion_details):
+        """Generate conversion command based on"""
+        callback = None
+        cmd = None
+        # Copy current environment variables
+        env = dict(os.environ)
 
+        if (conversion_details.source_format.extension == 'pdf' and
+                conversion_details.destination_format.extension == 'html'):
+            def callback(logs):
+                """Callback to rename output file"""
+                if os.path.isfile(conversion_details.t_extless_path + '-html.html'):
+                    os.rename(
+                        conversion_details.t_extless_path + '-html.html',
+                        conversion_details.t_extless_path + '.html')
+
+            # Use pdftohtml command for pdf to HTML conversion
+            cmd = [
+                'timeout', str(Config.EXECUTION_TIMEOUT) + 's',
+                'pdftohtml',
+                '-nomerge',
+                '-i',
+                '-s',
+                '-c',
+                conversion_details.t_input_path
+            ]
+        else:
+            # Generate default command using libreoffice
             # Create argument for input filter, if one has been specified for the given
             # input format
             input_filter = (['--infilter=' + conversion_details.source_format.input_filter]
                             if conversion_details.source_format.input_filter else [])
 
-            # Copy current environment variables
-            env = dict(os.environ)
             # Add DISPLAY env variable
             env['DISPLAY'] = ':99'
 
@@ -351,6 +380,17 @@ class Matoconv(object):
                 '--norestore',
                 conversion_details.t_input_path
             ]
+        return cmd, env, callback
+
+    @staticmethod
+    def perform_conversion(conversion_details):
+        """Using libreoffice, convert file to destination format."""
+        logs = []
+        try:
+            attempts = 0
+            return_logs = False
+
+            cmd, env, callback = Matoconv.get_conversion_command(conversion_details)
 
             while attempts < Config.MAX_ATTEMPTS:
                 logs.append('Running cmd:')
@@ -370,9 +410,11 @@ class Matoconv(object):
                 logs.append(p.stderr.read().decode(
                     'utf8', errors='backslashreplace').replace('\r', ''))
 
+                if callback:
+                    callback(logs)
+
                 # If libreoffice returned ok status code and
                 # the output file was created, break from loop
-                return_logs = True
                 if not rc and os.path.isfile(conversion_details.t_output_path):
                     break
                 else:
