@@ -306,6 +306,11 @@ class Matoconv(object):
             attempts = 0
             return_logs = False
 
+            # Copy current environment variables
+            env = dict(os.environ)
+            # Add DISPLAY env variable
+            env['DISPLAY'] = ':99'
+
             cmd = [
                 'timeout', str(EXECUTION_TIMEOUT) + 's',
                 'soffice',
@@ -323,7 +328,8 @@ class Matoconv(object):
                     cmd,
                     stderr=subprocess.PIPE,
                     stdout=subprocess.PIPE,
-                    cwd=conversion_details.temp_directory)
+                    cwd=conversion_details.temp_directory,
+                    env=env)
 
                 # Capture response code, stdout and stderr
                 rc = p.wait()

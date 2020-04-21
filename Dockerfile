@@ -14,10 +14,13 @@ RUN apt-get update && apt-get -y install \
     python3-flask-cors \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get -y install xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir /app
 WORKDIR /app
 ADD . /app/
 
 ENV LISTEN_PORT 8091
 
-ENTRYPOINT python3 -u /app/server.py
+ENTRYPOINT bash -c 'Xvfb :99 & python3 -u /app/server.py'
