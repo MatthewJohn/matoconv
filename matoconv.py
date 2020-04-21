@@ -318,6 +318,11 @@ class Matoconv(object):
                 '--convert-to', conversion_details.destination_format.output_filter,
                 '-env:UserInstallation=file://' + conversion_details.temp_directory,
                 '--writer',
+                '--nocrashreport',
+                '--nodefault',
+                '--nofirststartwizard',
+                '--nologo',
+                '--norestore',
                 conversion_details.t_input_path
             ]
 
