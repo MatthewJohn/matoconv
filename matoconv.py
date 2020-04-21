@@ -6,6 +6,11 @@ import subprocess
 import sys
 import time
 from multiprocessing import Pool, TimeoutError
+import fileinput
+import re
+import base64
+import binascii
+import mimetypes
 
 import flask
 from flask_cors import CORS
@@ -340,17 +345,28 @@ class Matoconv(object):
                 conversion_details.destination_format.extension == 'html'):
             def callback(logs):
                 """Callback to rename output file"""
+                def gen_base64_img(match):
+                    fn = conversion_details.temp_directory + '/' + match.groups()[0]
+                    print('Converting file:' + fn)
+                    if os.path.isfile(fn):
+                        return 'src="data:' + mimetypes.guess_type(fn)[0] + ';base64,' + base64.b64encode(open(fn, 'rb').read()).decode('ascii') + '"'
+                    return match.group()
+
                 if os.path.isfile(conversion_details.t_extless_path + '-html.html'):
-                    os.rename(
-                        conversion_details.t_extless_path + '-html.html',
-                        conversion_details.t_extless_path + '.html')
+                    with open(conversion_details.t_extless_path + '-html.html', 'r', encoding='latin-1') as fin:
+                        with open(conversion_details.t_extless_path + '.html', 'w', encoding='latin-1') as fout:
+                            while True:
+                                line = fin.readline()
+                                if not line:
+                                    break
+                                fout.write(re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
+
 
             # Use pdftohtml command for pdf to HTML conversion
             cmd = [
                 'timeout', str(Config.EXECUTION_TIMEOUT) + 's',
                 'pdftohtml',
                 '-nomerge',
-                '-i',
                 '-s',
                 '-c',
                 conversion_details.t_input_path
