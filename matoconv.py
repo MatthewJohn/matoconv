@@ -12,6 +12,7 @@ from flask_cors import CORS
 
 
 class Config(object):
+    """Class to provide access to configurations."""
 
     MAX_ATTEMPTS = int(os.environ.get('MAX_ATTEMPTS', 1))
     MAX_CONVERTERS = int(os.environ.get('MAX_CONVERTERS', 5))
@@ -21,6 +22,7 @@ class Config(object):
 
 
 class Format(object):
+    """Base class for handling details about file format"""
 
     CONTENT_TYPE = None
     EXTENSION = None
@@ -29,22 +31,27 @@ class Format(object):
 
     @property
     def content_type(self):
+        """Return content type."""
         return self.CONTENT_TYPE
 
     @property
     def extension(self):
+        """Return extension."""
         return self.EXTENSION
 
     @property
     def input_filter(self):
+        """Return input filter."""
         return self.INPUT_FILTER
 
     @property
     def output_filter(self):
+        """Return output filter."""
         return self.OUTPUT_FILTER
 
 
 class PDF(Format):
+    """Format class for PDF format."""
 
     CONTENT_TYPE = 'application/pdf'
     EXTENSION = 'pdf'
@@ -53,6 +60,7 @@ class PDF(Format):
 
 
 class DOCX(Format):
+    """Format class for DOCX format."""
 
     CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     EXTENSION = 'docx'
@@ -60,6 +68,7 @@ class DOCX(Format):
 
 
 class HTML(Format):
+    """Format class for HTML format."""
 
     CONTENT_TYPE = 'text/html'
     EXTENSION = 'html'
@@ -67,6 +76,7 @@ class HTML(Format):
 
 
 class FormatFactory(object):
+    """Factory class for providing lookup of format classes."""
 
     FORMATS = []
 
@@ -105,20 +115,20 @@ class MatoconvException(Exception):
     pass
 
 
-class UnknownFileType(Exception):
+class UnknownFileTypeError(MatoconvException):
     """Unknown filetype."""
 
     pass
 
 
-class UnknownOutputFiletype(MatoconvException):
-    """Unknown output format when attempting to obtain mimetype."""
+class CannotDetectFileTypeError(MatoconvException):
+    """Cannot detect input file type"""
 
     pass
 
 
-class CannotDetectFileType(MatoconvException):
-    """Cannot detect input file type"""
+class SingletonNotInstanciatedError(MatoconvException):
+    """Singleton instance has not been instanciated."""
 
     pass
 
@@ -154,10 +164,10 @@ class ConversionDetails(object):
             self._original_filename = self._content_disp_headers.split(';')[1].strip().split('=')[1].replace('"', '')
             self._source_format = FormatFactory.by_extension(self._original_filename.split('.')[-1])
         except ValueError:
-            raise CannotDetectFileType('Cannot detect input file type')
+            raise CannotDetectFileTypeError('Cannot detect input file type')
 
         if self._source_format is None:
-            raise UnknownFileType('Unsupported source format')
+            raise UnknownFileTypeError('Unsupported source format')
 
         # Generate output filename, removing the extension from the original filename
         # and adding output filetype extension.
@@ -302,8 +312,10 @@ class Matoconv(object):
         """Obtain singleton instance of Mataconv."""
         if Matoconv.INSTANCE is None and create:
             Matoconv.INSTANCE = Matoconv()
+
         elif Matoconv.INSTANCE is None:
-            raise Exception('No instance exists')
+            raise SingletonNotInstanciatedError('No matoconv instance exists')
+
         return Matoconv.INSTANCE
 
     @staticmethod
@@ -325,7 +337,7 @@ class Matoconv(object):
             env['DISPLAY'] = ':99'
 
             cmd = [
-                'timeout', str(ConfigEXECUTION_TIMEOUT) + 's',
+                'timeout', str(Config.EXECUTION_TIMEOUT) + 's',
                 'soffice',
                 '--headless',
                 '--convert-to', conversion_details.destination_format.output_filter,
