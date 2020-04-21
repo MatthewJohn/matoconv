@@ -22,6 +22,7 @@ class Format(object):
 
     CONTENT_TYPE = None
     EXTENSION = None
+    INPUT_FILTER = None
     OUTPUT_FILTER = None
 
     @property
@@ -33,6 +34,10 @@ class Format(object):
         return self.EXTENSION
 
     @property
+    def input_filter(self):
+        return self.INPUT_FILTER
+
+    @property
     def output_filter(self):
         return self.OUTPUT_FILTER
 
@@ -41,6 +46,7 @@ class PDF(Format):
 
     CONTENT_TYPE = 'application/pdf'
     EXTENSION = 'pdf'
+    INPUT_FILTER = 'writer_pdf_import'
     OUTPUT_FILTER = 'pdf'
 
 
@@ -48,14 +54,14 @@ class DOCX(Format):
 
     CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     EXTENSION = 'docx'
-    OUTPUT_FILTER = 'docx'
+    OUTPUT_FILTER = 'docx:Office Open XML Text'
 
 
 class HTML(Format):
 
     CONTENT_TYPE = 'text/html'
     EXTENSION = 'html'
-    OUTPUT_FILTER = 'html'
+    OUTPUT_FILTER = 'html:HTML (StarWriter):EmbedImages'
 
 
 class FormatFactory(object):
@@ -306,6 +312,11 @@ class Matoconv(object):
             attempts = 0
             return_logs = False
 
+            # Create argument for input filter, if one has been specified for the given
+            # input format
+            input_filter = (['--infilter=' + conversion_details.source_format.input_filter]
+                            if conversion_details.source_format.input_filter else [])
+
             # Copy current environment variables
             env = dict(os.environ)
             # Add DISPLAY env variable
@@ -316,6 +327,7 @@ class Matoconv(object):
                 'soffice',
                 '--headless',
                 '--convert-to', conversion_details.destination_format.output_filter,
+                ] + input_filter + [
                 '-env:UserInstallation=file://' + conversion_details.temp_directory,
                 '--writer',
                 '--nocrashreport',
@@ -346,6 +358,7 @@ class Matoconv(object):
 
                 # If libreoffice returned ok status code and
                 # the output file was created, break from loop
+                return_logs = True
                 if not rc and os.path.isfile(conversion_details.t_output_path):
                     break
                 else:
