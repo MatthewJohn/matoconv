@@ -197,7 +197,7 @@ class ConversionDetails(object):
         self._ouptut_filename = '.'.join(self.original_filename.split('.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
-        self._t_extless_filename = 'temporary'
+        self._t_extless_filename = 'conversion'
         self._t_input_filename = self.t_extless_filename + '.' + self.source_format.extension
         self._t_output_filename = self.t_extless_filename + '.' + self.destination_format.extension
 

@@ -5,15 +5,15 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <title>Matoconv</title>
   <script>
-
+    "use strict";
     function send(send_type)  {
-      var me_blob;
-      var content_type = 'text/html';
-      var file_name = 'test.html';
-      var file_data = $('#content').val();
+      let me_blob;
+      let content_type = 'text/html';
+      let file_name = 'test.html';
+      let file_data = $('#content').val();
 
       if (send_type == 'file') {
-        var file = document.getElementById('upload_file').files[0];
+        let file = document.getElementById('upload_file').files[0];
         file_data = file.slice(0, file.length);
         file_name = file.name;
         content_type = file.type;
@@ -21,11 +21,11 @@
 
       me_blob = new Blob([file_data], {type: content_type});
 
-      var req = new XMLHttpRequest();
+      let req = new XMLHttpRequest();
       var xhr = req;
       function saveBlob(blob, fileName) {
-        var a = document.createElement('a');
-        var in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
+        let a = document.createElement('a');
+        let in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
         a.href = window.URL.createObjectURL(in_b);
         a.download = fileName;
         a.dispatchEvent(new MouseEvent('click'));
