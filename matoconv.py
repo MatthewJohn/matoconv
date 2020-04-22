@@ -395,9 +395,6 @@ class Matoconv(object):
             input_filter = (['--infilter=' + conversion_details.source_format.input_filter]
                             if conversion_details.source_format.input_filter else [])
 
-            # Add DISPLAY env variable
-            env['DISPLAY'] = ':99'
-
             cmd = [
                 'timeout', str(Config.EXECUTION_TIMEOUT) + 's',
                 'soffice',

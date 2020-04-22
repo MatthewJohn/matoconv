@@ -14,7 +14,7 @@ RUN apt-get update && apt-get -y install \
     python3-flask-cors \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get -y install xvfb pdftohtml \
+RUN apt-get update && apt-get -y install pdftohtml \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /app
@@ -23,4 +23,4 @@ ADD . /app/
 
 ENV LISTEN_PORT 8091
 
-ENTRYPOINT bash -c 'Xvfb :99 & python3 -u /app/server.py'
+ENTRYPOINT python3 -u /app/server.py
