@@ -64,6 +64,14 @@ class PDF(Format):
     OUTPUT_FILTER = 'pdf'
 
 
+class DOC(Format):
+    """Format class for DOC format."""
+
+    CONTENT_TYPE = 'application/msword'
+    EXTENSION = 'doc'
+    OUTPUT_FILTER = 'doc:MS Word 97'
+
+
 class DOCX(Format):
     """Format class for DOCX format."""
 
@@ -94,6 +102,7 @@ class FormatFactory(object):
     def register_formats():
         """Register all formats."""
         FormatFactory._register_format(PDF)
+        FormatFactory._register_format(DOC)
         FormatFactory._register_format(DOCX)
         FormatFactory._register_format(HTML)
 
@@ -360,7 +369,6 @@ class Matoconv(object):
                                 if not line:
                                     break
                                 fout.write(re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
-
 
             # Use pdftohtml command for pdf to HTML conversion
             cmd = [
