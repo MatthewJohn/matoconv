@@ -80,6 +80,14 @@ class DOCX(Format):
     OUTPUT_FILTER = 'docx:Office Open XML Text'
 
 
+class ODT(Format):
+    """Format class for ODT format."""
+
+    CONTENT_TYPE = 'application/vnd.oasis.opendocument.text'
+    EXTENSION = 'odt'
+    OUTPUT_FILTER = 'odt:writer8'
+
+
 class HTML(Format):
     """Format class for HTML format."""
 
@@ -103,6 +111,7 @@ class FormatFactory(object):
         """Register all formats."""
         FormatFactory._register_format(PDF)
         FormatFactory._register_format(DOC)
+        FormatFactory._register_format(ODT)
         FormatFactory._register_format(DOCX)
         FormatFactory._register_format(HTML)
 
@@ -356,7 +365,7 @@ class Matoconv(object):
                 """Callback to rename output file"""
                 def gen_base64_img(match):
                     fn = conversion_details.temp_directory + '/' + match.groups()[0]
-                    print('Converting file:' + fn)
+                    logs.append('Converting file:' + fn)
                     if os.path.isfile(fn):
                         return 'src="data:' + mimetypes.guess_type(fn)[0] + ';base64,' + base64.b64encode(open(fn, 'rb').read()).decode('ascii') + '"'
                     return match.group()
