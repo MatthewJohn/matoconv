@@ -371,7 +371,6 @@ class Matoconv(object):
 
                 # If libreoffice returned ok status code and
                 # the output file was created, break from loop
-                return_logs = True
                 if not rc and os.path.isfile(conversion_details.t_output_path):
                     break
                 else:
