@@ -6,6 +6,11 @@ import subprocess
 import sys
 import time
 from multiprocessing import Pool, TimeoutError
+import fileinput
+import re
+import base64
+import binascii
+import mimetypes
 
 import flask
 from flask_cors import CORS
@@ -59,12 +64,28 @@ class PDF(Format):
     OUTPUT_FILTER = 'pdf'
 
 
+class DOC(Format):
+    """Format class for DOC format."""
+
+    CONTENT_TYPE = 'application/msword'
+    EXTENSION = 'doc'
+    OUTPUT_FILTER = 'doc:MS Word 97'
+
+
 class DOCX(Format):
     """Format class for DOCX format."""
 
     CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     EXTENSION = 'docx'
     OUTPUT_FILTER = 'docx:Office Open XML Text'
+
+
+class ODT(Format):
+    """Format class for ODT format."""
+
+    CONTENT_TYPE = 'application/vnd.oasis.opendocument.text'
+    EXTENSION = 'odt'
+    OUTPUT_FILTER = 'odt:writer8'
 
 
 class HTML(Format):
@@ -89,6 +110,8 @@ class FormatFactory(object):
     def register_formats():
         """Register all formats."""
         FormatFactory._register_format(PDF)
+        FormatFactory._register_format(DOC)
+        FormatFactory._register_format(ODT)
         FormatFactory._register_format(DOCX)
         FormatFactory._register_format(HTML)
 
@@ -174,8 +197,9 @@ class ConversionDetails(object):
         self._ouptut_filename = '.'.join(self.original_filename.split('.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
-        self._t_input_filename = 'conversion.' + self.source_format.extension
-        self._t_output_filename = 'conversion.' + self.destination_format.extension
+        self._t_extless_filename = 'conversion'
+        self._t_input_filename = self.t_extless_filename + '.' + self.source_format.extension
+        self._t_output_filename = self.t_extless_filename + '.' + self.destination_format.extension
 
         # Store temporary working directory
         self._temp_directory = temp_directory
@@ -213,6 +237,16 @@ class ConversionDetails(object):
     def t_output_filename(self):
         """Property for name of temporary output file."""
         return self._t_output_filename
+
+    @property
+    def t_extless_filename(self):
+        """Property for name of temporary filename without extension."""
+        return self._t_extless_filename
+
+    @property
+    def t_extless_path(self):
+        """Property for name of temporary path without extension."""
+        return self._prepend_path(self._t_extless_filename)
 
     @property
     def ouptut_filename(self):
@@ -318,20 +352,49 @@ class Matoconv(object):
         return Matoconv.INSTANCE
 
     @staticmethod
-    def perform_conversion(conversion_details):
-        """Using libreoffice, convert file to destination format."""
-        logs = []
-        try:
-            attempts = 0
-            return_logs = False
+    def get_conversion_command(conversion_details):
+        """Generate conversion command based on"""
+        callback = None
+        cmd = None
+        # Copy current environment variables
+        env = dict(os.environ)
 
+        if (conversion_details.source_format.extension == 'pdf' and
+                conversion_details.destination_format.extension == 'html'):
+            def callback(logs):
+                """Callback to rename output file"""
+                def gen_base64_img(match):
+                    fn = conversion_details.temp_directory + '/' + match.groups()[0]
+                    logs.append('Converting file:' + fn)
+                    if os.path.isfile(fn):
+                        return 'src="data:' + mimetypes.guess_type(fn)[0] + ';base64,' + base64.b64encode(open(fn, 'rb').read()).decode('ascii') + '"'
+                    return match.group()
+
+                if os.path.isfile(conversion_details.t_extless_path + '-html.html'):
+                    with open(conversion_details.t_extless_path + '-html.html', 'r', encoding='latin-1') as fin:
+                        with open(conversion_details.t_extless_path + '.html', 'w', encoding='latin-1') as fout:
+                            while True:
+                                line = fin.readline()
+                                if not line:
+                                    break
+                                fout.write(re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
+
+            # Use pdftohtml command for pdf to HTML conversion
+            cmd = [
+                'timeout', str(Config.EXECUTION_TIMEOUT) + 's',
+                'pdftohtml',
+                '-nomerge',
+                '-s',
+                '-c',
+                conversion_details.t_input_path
+            ]
+        else:
+            # Generate default command using libreoffice
             # Create argument for input filter, if one has been specified for the given
             # input format
             input_filter = (['--infilter=' + conversion_details.source_format.input_filter]
                             if conversion_details.source_format.input_filter else [])
 
-            # Copy current environment variables
-            env = dict(os.environ)
             # Add DISPLAY env variable
             env['DISPLAY'] = ':99'
 
@@ -350,6 +413,17 @@ class Matoconv(object):
                 '--norestore',
                 conversion_details.t_input_path
             ]
+        return cmd, env, callback
+
+    @staticmethod
+    def perform_conversion(conversion_details):
+        """Using libreoffice, convert file to destination format."""
+        logs = []
+        try:
+            attempts = 0
+            return_logs = False
+
+            cmd, env, callback = Matoconv.get_conversion_command(conversion_details)
 
             while attempts < Config.MAX_ATTEMPTS:
                 logs.append('Running cmd:')
@@ -368,6 +442,9 @@ class Matoconv(object):
                     'utf8', errors='backslashreplace').replace('\r', ''))
                 logs.append(p.stderr.read().decode(
                     'utf8', errors='backslashreplace').replace('\r', ''))
+
+                if callback:
+                    callback(logs)
 
                 # If libreoffice returned ok status code and
                 # the output file was created, break from loop

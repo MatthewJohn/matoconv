@@ -14,7 +14,7 @@ RUN apt-get update && apt-get -y install \
     python3-flask-cors \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get -y install xvfb \
+RUN apt-get update && apt-get -y install xvfb pdftohtml \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /app
