@@ -5,14 +5,27 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <title>Matoconv</title>
   <script>
+    "use strict";
+    function send(send_type)  {
+      let me_blob;
+      let content_type = 'text/html';
+      let file_name = 'test.html';
+      let file_data = $('#content').val();
 
-    function send()  {
-      var me_blob = new Blob([$('#content').val()], {type: 'text/html'});
-      var req = new XMLHttpRequest();
+      if (send_type == 'file') {
+        let file = document.getElementById('upload_file').files[0];
+        file_data = file.slice(0, file.length);
+        file_name = file.name;
+        content_type = file.type;
+      }
+
+      me_blob = new Blob([file_data], {type: content_type});
+
+      let req = new XMLHttpRequest();
       var xhr = req;
       function saveBlob(blob, fileName) {
-        var a = document.createElement('a');
-        var in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
+        let a = document.createElement('a');
+        let in_b = new Blob([blob], {type: 'application/' + $(".conv_type:checked").val()});
         a.href = window.URL.createObjectURL(in_b);
         a.download = fileName;
         a.dispatchEvent(new MouseEvent('click'));
@@ -23,7 +36,7 @@
       }
       req.responseType = "blob";
       req.open("POST", 'http://' + $('#server').val() + '/convert/format/' + $(".conv_type:checked").val(), true);
-      req.setRequestHeader('Content-Disposition', 'attachment; filename="test.html"');
+      req.setRequestHeader('Content-Disposition', 'attachment; filename="' + file_name + '"');
       req.send(me_blob);
     }
     $(document).ready(() => {
@@ -40,6 +53,12 @@
   <br />
   <span>DOCX: <input class="conv_type" type="radio" name="filetype" value="docx" /></span>
   <br />
+  <span>DOC: <input class="conv_type" type="radio" name="filetype" value="doc" /></span>
+  <br />
+  <span>ODT: <input class="conv_type" type="radio" name="filetype" value="odt" /></span>
+  <br />
+  <span>HTML: <input class="conv_type" type="radio" name="filetype" value="html" /></span>
+  <br />
   <input value="" type="text" name="server" id="server" />
   <br />
   <textarea name="content" id="content">
@@ -52,7 +71,15 @@
 </html>
   </textarea>
   <br />
-  <button id="Convert" onclick="send();">Go</button>
+  <button id="Convert" onclick="send('html');">Send HTML</button>
+  <br />
+  <br />
+  <br />
+  <input type="file" name="upload_file" id="upload_file" />
+  <br />
+  <button id="Convert" onclick="send('file');">Send File</button>
+  <br />
+
 </body>
 
 </html>

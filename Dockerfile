@@ -14,6 +14,9 @@ RUN apt-get update && apt-get -y install \
     python3-flask-cors \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get -y install pdftohtml \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir /app
 WORKDIR /app
 ADD . /app/
