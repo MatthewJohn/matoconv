@@ -9,13 +9,16 @@ RUN apt-get update && apt-get -y install \
     fonts-arphic-uming \
     fonts-indic \
     python3 \
-    python3-flask \
+    python3-pip \
     libreoffice \
-    python3-flask-cors \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /app
 WORKDIR /app
+
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
+
 ADD . /app/
 
 ENV LISTEN_PORT 8091
