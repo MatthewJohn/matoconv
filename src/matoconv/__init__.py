@@ -468,4 +468,3 @@ class Matoconv(object):
                 return logs
             else:
                 return []
-
