@@ -17,10 +17,10 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt
 
 ADD . /app/
+RUN pip3 install .
 
 ENV LISTEN_PORT 8091
 
-ENTRYPOINT python3 -u /app/server.py
+ENTRYPOINT python3 -u /usr/local/bin/server.py
