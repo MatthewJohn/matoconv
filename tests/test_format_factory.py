@@ -16,6 +16,26 @@ class TestFormatFactory(TestCase):
         form = self.format_factory.by_extension('doesnotexist')
         self.assertEqual(form, None)
 
+    def test_by_extension_empty(self) -> None:
+        """Test by_extension with an empty extension."""
+        form = self.format_factory.by_extension('')
+        self.assertEqual(form, None)
+
+    def test_by_extension_mocked(self):
+        """Test by_extension, mocking list of extensions and format class."""
+        mocked_extension = mock.Mock()
+        mocked_extension_instance = mock.Mock()
+        mocked_extension.return_value = mocked_extension_instance
+
+        FormatFactory.FORMATS = [mocked_extension]
+        mocked_extension_instance.extension = 'TestExtension'
+
+        self.assertEqual(
+            self.format_factory.by_extension('TestExtension'),
+            mocked_extension_instance)
+
+        mocked_extension.assert_called()
+
     def test_by_extension(self):
         """Test by_extension method."""
         for ext, cls in [
