@@ -65,11 +65,33 @@ class TestSetup(TestRouteBase):
         self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
         self.mock_register_formats = self.mock_register_formats_patcher.start()
         self.addCleanup(self.mock_register_formats_patcher.stop)
+
+        self.mock_flask_patcher = mock.patch('matoconv.FlaskNoName')
+        self.mock_flask = self.mock_flask_patcher.start()
+        self.mock_flask_app = mock.MagicMock()
+        self.mock_flask.return_value = self.mock_flask_app
+        self.addCleanup(self.mock_flask_patcher.stop)
+
+        self.mock_cors_patcher = mock.patch('matoconv.CORS')
+        self.mock_cors = self.mock_cors_patcher.start()
+        self.addCleanup(self.mock_cors_patcher.stop)
+
+        self.mock_pool_patcher = mock.patch('matoconv.Pool')
+        self.mock_pool = self.mock_pool_patcher.start()
+        self.addCleanup(self.mock_pool_patcher.stop)
+
         return super().setUp()
 
     def test_ensure_format_factory_setup(self):
         """Ensure register formats was called."""
         self.mock_register_formats.assert_called()
+        # Ensure FlaskNoName is build with correct name
+        self.mock_flask.assert_called_with('matoconv')
+        # Assert cors called with flask app and resource config
+        self.mock_cors.assert_called_with(self.mock_flask_app, resources={r"*": {"origins": ""}})
+        # Assert Pool is created with correct number for threads
+        self.mock_pool.assert_called_with(processes=5)
+
 
 class TestRouteIndex(TestRouteBase):
 
