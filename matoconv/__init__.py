@@ -121,7 +121,7 @@ class FormatFactory(object):
 
         # Look through formats to matching extension
         for ext in FormatFactory.FORMATS:
-            if ext().extension == extension:
+            if ext().extension.lower() == extension:
                 # Return instance of class, so that properties work
                 return ext()
 
