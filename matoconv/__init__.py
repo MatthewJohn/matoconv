@@ -290,7 +290,7 @@ class Matoconv(object):
             # Check valid destination format
             dest_format = FormatFactory.by_extension(dest_filetype)
             if dest_format is None:
-                flask.abort(404)
+                flask.abort(404, 'Invalid destination file format')
 
             content_disp = flask.request.headers.get(
                 'Content-Disposition', None)
