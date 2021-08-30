@@ -31,4 +31,5 @@ setuptools.setup(
     ],
     scripts=['matoconv/server.py'],
     packages=['matoconv'],
+    include_package_data=True,
 )
