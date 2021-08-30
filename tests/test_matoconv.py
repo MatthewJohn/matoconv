@@ -4,9 +4,60 @@ from unittest import TestCase, mock
 from matoconv import Matoconv
 
 
-# Mock Pool, as teardown causes errors in __del__
-@mock.Mock('matoconv.Pool')
-class TestGetInstance(TestCase):
+class TestRouteBase(TestCase):
+
+    def create_matoconv_object(self):
+        """Create test instance of Matoconv"""
+        # Create instance of Matoconv
+        self.matoconv = Matoconv()
+
+        # Update flask app config for testing
+        self.matoconv.app.config['TESTING'] = True
+        self.matoconv.app.config['WTF_CSRF_ENABLED'] = False
+        self.matoconv.app.config['DEBUG'] = False
+
+    def create_test_client(self):
+        """Create client for running test requests."""
+        self.client = self.matoconv.app.test_client()
+
+    def setUp(self) -> None:
+        """Create required mocks/objects for tests."""
+        self.create_matoconv_object()
+        self.create_test_client()
+
+
+class TestRouteMockedBase(TestRouteBase):
+
+    def setUp(self) -> None:
+        """Create mocks and call setup setup."""
+        self.create_mocks()
+        return super().setUp()
+
+    def create_mocks(self):
+        """
+        Mock objects before Matoconv object is created in setUp.
+        @TODO Do not inherit from TestRouteBase and move mocks to actual test.
+        """
+        self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
+        self.mock_register_formats = self.mock_register_formats_patcher.start()
+        self.addCleanup(self.mock_register_formats_patcher.stop)
+
+        self.mock_flask_patcher = mock.patch('matoconv.FlaskNoName')
+        self.mock_flask = self.mock_flask_patcher.start()
+        self.mock_flask_app = mock.MagicMock()
+        self.mock_flask.return_value = self.mock_flask_app
+        self.addCleanup(self.mock_flask_patcher.stop)
+
+        self.mock_cors_patcher = mock.patch('matoconv.CORS')
+        self.mock_cors = self.mock_cors_patcher.start()
+        self.addCleanup(self.mock_cors_patcher.stop)
+
+        self.mock_pool_patcher = mock.patch('matoconv.Pool')
+        self.mock_pool = self.mock_pool_patcher.start()
+        self.addCleanup(self.mock_pool_patcher.stop)
+
+
+class TestGetInstance(TestRouteMockedBase):
 
     def setUp(self) -> None:
         """Store current value of Matoconve INSTANCE static value."""
@@ -43,48 +94,7 @@ class TestGetInstance(TestCase):
         self.assertEqual(Matoconv.INSTANCE, matoconv_2)
 
 
-class TestRouteBase(TestCase):
-
-    def setUp(self) -> None:
-        """Create test instance of Matoconv"""
-        # Create instance of Matoconv
-        self.matoconv = Matoconv()
-
-        # Update flask app config for testing
-        self.matoconv.app.config['TESTING'] = True
-        self.matoconv.app.config['WTF_CSRF_ENABLED'] = False
-        self.matoconv.app.config['DEBUG'] = False
-
-        self.client = self.matoconv.app.test_client()
-        return super().setUp()
-
-
-class TestSetup(TestRouteBase):
-
-    def setUp(self) -> None:
-        """
-        Mock objects before Matoconv object is created in setUp.
-        @TODO Do not inherit from TestRouteBase and move mocks to actual test.
-        """
-        self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
-        self.mock_register_formats = self.mock_register_formats_patcher.start()
-        self.addCleanup(self.mock_register_formats_patcher.stop)
-
-        self.mock_flask_patcher = mock.patch('matoconv.FlaskNoName')
-        self.mock_flask = self.mock_flask_patcher.start()
-        self.mock_flask_app = mock.MagicMock()
-        self.mock_flask.return_value = self.mock_flask_app
-        self.addCleanup(self.mock_flask_patcher.stop)
-
-        self.mock_cors_patcher = mock.patch('matoconv.CORS')
-        self.mock_cors = self.mock_cors_patcher.start()
-        self.addCleanup(self.mock_cors_patcher.stop)
-
-        self.mock_pool_patcher = mock.patch('matoconv.Pool')
-        self.mock_pool = self.mock_pool_patcher.start()
-        self.addCleanup(self.mock_pool_patcher.stop)
-
-        return super().setUp()
+class TestSetup(TestRouteMockedBase):
 
     def test_ensure_format_factory_setup(self):
         """Ensure register formats was called."""
