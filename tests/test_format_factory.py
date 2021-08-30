@@ -10,5 +10,6 @@ class TestFormatFactory(TestCase):
         self.format_factory = FormatFactory()
         return super().setUp()
 
-    def test_unknown_format(self):
-        
+    def test_unknown_format(self) -> None:
+        form = self.format_factory.by_extension('doesnotexist')
+        self.assertEqual(form, None)

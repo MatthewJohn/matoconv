@@ -3,13 +3,10 @@
 import os
 import tempfile
 import subprocess
-import sys
 import time
 from multiprocessing import Pool, TimeoutError
-import fileinput
 import re
 import base64
-import binascii
 import mimetypes
 
 import flask
@@ -102,7 +99,7 @@ class FormatFactory(object):
     FORMATS = []
 
     @staticmethod
-    def _register_format(format_cls):
+    def _register_format(format_cls: Format):
         """Register a format"""
         FormatFactory.FORMATS.append(format_cls)
 
@@ -116,7 +113,7 @@ class FormatFactory(object):
         FormatFactory._register_format(HTML)
 
     @staticmethod
-    def by_extension(extension):
+    def by_extension(extension: str):
         """Return format based on extension"""
         # If extension is empty, return None
         if not extension:
@@ -159,7 +156,7 @@ class SingletonNotInstanciatedError(MatoconvException):
 class FlaskNoName(flask.Flask):
     """Remove server name header."""
 
-    def process_response(self, response):
+    def process_response(self, response: flask.Response) -> flask.Response:
         """Override response to remove server name"""
         response.headers['server'] = __name__
         return(response)
@@ -169,7 +166,10 @@ class ConversionDetails(object):
     """Struct-like object for storing details
     about conversions, such as file paths."""
 
-    def __init__(self, content_disp_headers, temp_directory, dest_format):
+    def __init__(self,
+                 content_disp_headers: str,
+                 temp_directory: str,
+                 dest_format: str):
         """Setup member variables."""
         self._destination_format = dest_format
         self._content_disp_headers = content_disp_headers
@@ -204,7 +204,7 @@ class ConversionDetails(object):
         # Store temporary working directory
         self._temp_directory = temp_directory
 
-    def _prepend_path(self, filename):
+    def _prepend_path(self, filename: str):
         """Prepend filename with temporary directory."""
         return self._temp_directory + '/' + filename
 
@@ -283,7 +283,7 @@ class Matoconv(object):
         FormatFactory.register_formats()
 
         @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
-        def convert_file(dest_filetype):
+        def convert_file(dest_filetype: str):
             """Provide endpoint for converting files."""
 
             # Check valid destination format
@@ -336,7 +336,7 @@ class Matoconv(object):
             return flask.send_from_directory('static', 'index.html')
 
     @staticmethod
-    def log(msg):
+    def log(msg: str):
         """Log using the flask error log method."""
         Matoconv.get_instance().app.logger.error(msg)
 
@@ -352,7 +352,7 @@ class Matoconv(object):
         return Matoconv.INSTANCE
 
     @staticmethod
-    def get_conversion_command(conversion_details):
+    def get_conversion_command(conversion_details: ConversionDetails):
         """Generate conversion command based on"""
         callback = None
         cmd = None
@@ -413,7 +413,7 @@ class Matoconv(object):
         return cmd, env, callback
 
     @staticmethod
-    def perform_conversion(conversion_details):
+    def perform_conversion(conversion_details: ConversionDetails):
         """Using libreoffice, convert file to destination format."""
         logs = []
         try:
