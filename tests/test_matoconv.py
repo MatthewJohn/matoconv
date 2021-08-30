@@ -107,8 +107,10 @@ class TestRouteMockedBase(TestRouteBase):
 
         if self.MOCK_POOL:
             self.mock_pool_patcher = mock.patch('matoconv.Pool')
-            self.mock_pool = self.mock_pool_patcher.start()
+            self.mock_pool_class = self.mock_pool_patcher.start()
             self.addCleanup(self.mock_pool_patcher.stop)
+            self.mock_pool = mock.MagicMock()
+            self.mock_pool_class.return_value = self.mock_pool
 
         if self.MOCK_CONVERSION_DETAILS:
             self.mock_conversion_details_patcher = mock.patch(
@@ -181,7 +183,7 @@ class TestSetup(TestRouteMockedBase):
         self.mock_cors.assert_called_with(
             self.mock_flask_app, resources={r"*": {"origins": ""}})
         # Assert Pool is created with correct number for threads
-        self.mock_pool.assert_called_with(processes=5)
+        self.mock_pool_class.assert_called_with(processes=5)
 
 
 class TestRouteIndex(TestRouteBase):
@@ -221,10 +223,15 @@ class TestRouteConvert(TestRouteMockedBase):
 
         # Update conversion details mock init to return mock object
         MockConversionDetails.TYPE = 1
-        self.mock_conversion_details.return_value = MockConversionDetails()
+        mock_conversion_details_obj = MockConversionDetails()
+        self.mock_conversion_details.return_value = mock_conversion_details_obj
 
         destination_format_mock = mock.MagicMock()
         self.mock_format_factory_by_extension.return_value = destination_format_mock
+
+        # Mock pool apply_async return object
+        mock_apply_async_task = mock.MagicMock()
+        self.mock_pool.apply_async.return_value = mock_apply_async_task
 
         # Setup mocked temporary directory
         self.mock_temporary_directory.__enter__.return_value = '/some_temp-dir'
@@ -248,6 +255,11 @@ class TestRouteConvert(TestRouteMockedBase):
             temp_directory='/some_temp-dir',
             dest_format=destination_format_mock
         )
+
+        # Ensure object is added to pool and callto get response was made
+        self.mock_pool.apply_async.assert_called_with(
+            self.matoconv.perform_conversion, (mock_conversion_details_obj, ))
+        mock_apply_async_task.get.assert_called_with(timeout=60)
 
         # Ensure open was called as expected
         self.mock_open.assert_has_calls([
