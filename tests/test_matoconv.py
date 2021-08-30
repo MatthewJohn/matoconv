@@ -41,3 +41,31 @@ class TestGetInstance(TestCase):
 
         # Ensure instance is cached.
         self.assertEqual(Matoconv.INSTANCE, matoconv_2)
+
+
+class TestRouteBase(TestCase):
+
+    def setUp(self) -> None:
+        """Create test instance of Matoconv"""
+        # Create instance of Matoconv
+        self.matoconv = Matoconv()
+        # Update flask app config for testing
+        self.matoconv.app.config['TESTING'] = True
+        self.matoconv.app.config['WTF_CSRF_ENABLED'] = False
+        self.matoconv.app.config['DEBUG'] = False
+
+        self.client = self.matoconv.app.test_client()
+        return super().setUp()
+
+class TestRouteIndex(TestRouteBase):
+
+    def test_index(self):
+        """Test index."""
+        res = self.client.get('/')
+        print(res.data)
+        self.assertTrue('Matoconv' in str(res.data))
+        self.assertTrue('<form' in str(res.data))
+
+
+class TestRouteConvert(TestRouteBase):
+    pass
