@@ -62,18 +62,16 @@ class TestRouteIndex(TestRouteBase):
 
     def test_index(self):
         """Test index."""
-        res = self.client.get('/')
-        self.assertTrue('Matoconv' in str(res.data))
-        self.assertTrue('<textarea' in str(res.data))
+        with self.client.get('/') as res:
+            self.assertTrue('Matoconv' in str(res.data))
+            self.assertTrue('<textarea' in str(res.data))
 
 
 class TestRouteConvert(TestRouteBase):
 
     def test_unknown_destination_format(self):
         """Test conversion of unknown destination format."""
-        res = self.client.post(
-            '/convert/format/doesnotexist',
-            headers={'Content-Disposition': 'attachment; filename="example.html"'},
-            data='NotRealData')
-
-        self.assertEqual(res.status_code, 404)
+        with self.client.post('/convert/format/doesnotexist',
+                              headers={'Content-Disposition': 'attachment; filename="example.html"'},
+                              data='NotRealData') as res:
+            self.assertEqual(res.status_code, 404)
