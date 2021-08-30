@@ -1,7 +1,8 @@
+import warnings
 
 from unittest import TestCase, mock
 
-from matoconv import Matoconv
+from matoconv import Matoconv, PDF, HTML
 
 
 class TestRouteBase(TestCase):
@@ -26,7 +27,47 @@ class TestRouteBase(TestCase):
         self.create_test_client()
 
 
+class MockConversionDetails(object):
+
+    """Type ID to be set by tests for specifying details."""
+    TYPE = None
+
+    """Property values, indexed by TYPE"""
+    _VALUES = {
+        1: {
+            "original_filename": "OR1g1nalFILENAME.html",
+            "response_mime_type": "special-type/pdf-mime",
+            "t_input_path": "/tmp/conversion-path/temp-conversion-file.html",
+            "t_output_path": "/tmp/conversion-path/temp-conversion-file.pdf",
+            "t_input_filename": "temp-conversion-file.html",
+            "t_output_filename": "temp-conversion-file.pdf",
+            "t_extless_filename": "temp-conversion-file",
+            "t_extless_path": "/tmp/conversion-path/temp-conversion-file",
+            "ouptut_filename": "OR1g1nalFILENAME.pdf",
+            "temp_directory": "/tmp/conversion-path",
+            "destination_format": PDF,
+            "source_format": HTML
+        }
+    }
+
+    def __getattribute__(self, name: str):
+        """Lookup attribute in VALUES dict and return vale, if available."""
+        if name != 'TYPE' and name != '_VALUES':
+            if self.TYPE is None:
+                warnings.warn('Type not set in MockConversionDetails')
+            elif name in self._VALUES[self.TYPE]:
+                return self._VALUES[self.TYPE][name] 
+        return super().__getattribute__(name)
+
+
 class TestRouteMockedBase(TestRouteBase):
+
+    MOCK_APP = True
+    MOCK_REGISTER_FORMATS = True
+    MOCK_CORS = True
+    MOCK_POOL = True
+    MOCK_CONVERSION_DETAILS = True
+    MOCK_OPEN = True
 
     def setUp(self) -> None:
         """Create mocks and call setup setup."""
@@ -38,23 +79,38 @@ class TestRouteMockedBase(TestRouteBase):
         Mock objects before Matoconv object is created in setUp.
         @TODO Do not inherit from TestRouteBase and move mocks to actual test.
         """
-        self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
-        self.mock_register_formats = self.mock_register_formats_patcher.start()
-        self.addCleanup(self.mock_register_formats_patcher.stop)
+        if self.MOCK_REGISTER_FORMATS:
+            self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
+            self.mock_register_formats = self.mock_register_formats_patcher.start()
+            self.addCleanup(self.mock_register_formats_patcher.stop)
 
-        self.mock_flask_patcher = mock.patch('matoconv.FlaskNoName')
-        self.mock_flask = self.mock_flask_patcher.start()
-        self.mock_flask_app = mock.MagicMock()
-        self.mock_flask.return_value = self.mock_flask_app
-        self.addCleanup(self.mock_flask_patcher.stop)
+        if self.MOCK_APP:
+            self.mock_flask_patcher = mock.patch('matoconv.FlaskNoName')
+            self.mock_flask = self.mock_flask_patcher.start()
+            self.mock_flask_app = mock.MagicMock()
+            self.mock_flask.return_value = self.mock_flask_app
+            self.addCleanup(self.mock_flask_patcher.stop)
 
-        self.mock_cors_patcher = mock.patch('matoconv.CORS')
-        self.mock_cors = self.mock_cors_patcher.start()
-        self.addCleanup(self.mock_cors_patcher.stop)
+        if self.MOCK_CORS:
+            self.mock_cors_patcher = mock.patch('matoconv.CORS')
+            self.mock_cors = self.mock_cors_patcher.start()
+            self.addCleanup(self.mock_cors_patcher.stop)
 
-        self.mock_pool_patcher = mock.patch('matoconv.Pool')
-        self.mock_pool = self.mock_pool_patcher.start()
-        self.addCleanup(self.mock_pool_patcher.stop)
+        if self.MOCK_POOL:
+            self.mock_pool_patcher = mock.patch('matoconv.Pool')
+            self.mock_pool = self.mock_pool_patcher.start()
+            self.addCleanup(self.mock_pool_patcher.stop)
+
+        if self.MOCK_CONVERSION_DETAILS:
+            self.mock_conversion_details_patcher = mock.patch('matoconv.ConversionDetails')
+            self.mock_conversion_details = self.mock_conversion_details_patcher.start()
+            self.addCleanup(self.mock_conversion_details_patcher.stop)
+
+        if self.MOCK_OPEN:
+            self.mock_open = mock.mock_open()
+            self.mock_open_patcher = mock.patch('matoconv.open', self.mock_open, create=True)
+            self.mock_open_patcher.start()
+            self.addCleanup(self.mock_open_patcher.stop)
 
 
 class TestGetInstance(TestRouteMockedBase):
@@ -133,3 +189,21 @@ class TestRouteConvert(TestRouteBase):
                               data='NotRealData') as res:
             self.assertEqual(res.status_code, 400)
             self.assertTrue(b'Missing Content-Disposition header' in res.data)
+
+
+class TestRouteConvert(TestRouteMockedBase):
+
+    MOCK_APP = False
+
+    def test_unknown_destination_format(self):
+
+        # Update conversion details mock init to return mock object
+        MockConversionDetails.TYPE = 1
+        self.mock_conversion_details.return_value = MockConversionDetails()
+
+        with self.client.post('/convert/format/docx',
+                              headers={'Content-Disposition': 'attachment; filename="OR1g1nalFILENAME.html"'},
+                              data='SOME TEST DATA FROM INPUT HTML FILE') as res:
+            self.assertEquals(res.status_code, 200)
+            self.assertEquals(res.headers['Content-Disposition'], 'attachment; filename=OR1g1nalFILENAME.pdf')
+            self.assertEquals(res.content_type, "special-type/pdf-mime")
