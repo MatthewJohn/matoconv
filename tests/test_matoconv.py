@@ -57,15 +57,23 @@ class TestRouteBase(TestCase):
         self.client = self.matoconv.app.test_client()
         return super().setUp()
 
+
 class TestRouteIndex(TestRouteBase):
 
     def test_index(self):
         """Test index."""
         res = self.client.get('/')
-        print(res.data)
         self.assertTrue('Matoconv' in str(res.data))
-        self.assertTrue('<form' in str(res.data))
+        self.assertTrue('<textarea' in str(res.data))
 
 
 class TestRouteConvert(TestRouteBase):
-    pass
+
+    def test_unknown_destination_format(self):
+        """Test conversion of unknown destination format."""
+        res = self.client.post(
+            '/convert/format/doesnotexist',
+            headers={'Content-Disposition': 'attachment; filename="example.html"'},
+            data='NotRealData')
+
+        self.assertEqual(res.status_code, 404)
