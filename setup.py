@@ -1,6 +1,7 @@
 
 import setuptools
 
+
 with open('requirements.txt') as f:
     INSTALL_REQUIRES = f.read().strip().split('\n')
 
@@ -31,5 +32,7 @@ setuptools.setup(
     ],
     scripts=['matoconv/server.py'],
     packages=['matoconv'],
+    test_suite='nose.collector',
+    tests_require=['nose'],
     include_package_data=True,
 )

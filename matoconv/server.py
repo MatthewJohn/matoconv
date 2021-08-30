@@ -5,7 +5,7 @@ from matoconv import Matoconv
 
 
 # Initialise server instance
-m = Matoconv.get_instance(create=True)
+m = Matoconv.get_instance()
 # Run server
 m.app.run(
     host=os.environ.get('LISTEN_HOST', '0.0.0.0'),

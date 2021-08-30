@@ -3,13 +3,10 @@
 import os
 import tempfile
 import subprocess
-import sys
 import time
 from multiprocessing import Pool, TimeoutError
-import fileinput
 import re
 import base64
-import binascii
 import mimetypes
 
 import flask
@@ -102,7 +99,7 @@ class FormatFactory(object):
     FORMATS = []
 
     @staticmethod
-    def _register_format(format_cls):
+    def _register_format(format_cls: Format):
         """Register a format"""
         FormatFactory.FORMATS.append(format_cls)
 
@@ -116,7 +113,7 @@ class FormatFactory(object):
         FormatFactory._register_format(HTML)
 
     @staticmethod
-    def by_extension(extension):
+    def by_extension(extension: str):
         """Return format based on extension"""
         # If extension is empty, return None
         if not extension:
@@ -124,7 +121,7 @@ class FormatFactory(object):
 
         # Look through formats to matching extension
         for ext in FormatFactory.FORMATS:
-            if ext().extension == extension:
+            if ext().extension == extension.lower():
                 # Return instance of class, so that properties work
                 return ext()
 
@@ -145,13 +142,7 @@ class UnknownFileTypeError(MatoconvException):
 
 
 class CannotDetectFileTypeError(MatoconvException):
-    """Cannot detect input file type"""
-
-    pass
-
-
-class SingletonNotInstanciatedError(MatoconvException):
-    """Singleton instance has not been instanciated."""
+    """Cannot detect input file type."""
 
     pass
 
@@ -159,17 +150,22 @@ class SingletonNotInstanciatedError(MatoconvException):
 class FlaskNoName(flask.Flask):
     """Remove server name header."""
 
-    def process_response(self, response):
-        """Override response to remove server name"""
+    def process_response(self, response: flask.Response) -> flask.Response:
+        """Override response to remove server name."""
+        response = super().process_response(response)
         response.headers['server'] = __name__
-        return(response)
+        return response
 
 
 class ConversionDetails(object):
     """Struct-like object for storing details
-    about conversions, such as file paths."""
+    about conversions, such as file paths.
+    """
 
-    def __init__(self, content_disp_headers, temp_directory, dest_format):
+    def __init__(self,
+                 content_disp_headers: str,
+                 temp_directory: str,
+                 dest_format: Format):
         """Setup member variables."""
         self._destination_format = dest_format
         self._content_disp_headers = content_disp_headers
@@ -184,8 +180,10 @@ class ConversionDetails(object):
             #   Strip white-space
             #   Split by equals '=' and take second element
             #   Remove any double-quotes
-            self._original_filename = self._content_disp_headers.split(';')[1].strip().split('=')[1].replace('"', '')
-            self._source_format = FormatFactory.by_extension(self._original_filename.split('.')[-1])
+            self._original_filename = self._content_disp_headers.split(
+                ';')[1].strip().split('=')[1].replace('"', '')
+            self._source_format = FormatFactory.by_extension(
+                self._original_filename.split('.')[-1])
         except ValueError:
             raise CannotDetectFileTypeError('Cannot detect input file type')
 
@@ -194,17 +192,20 @@ class ConversionDetails(object):
 
         # Generate output filename, removing the extension from the original filename
         # and adding output filetype extension.
-        self._ouptut_filename = '.'.join(self.original_filename.split('.')[:-1]) + '.' + self.destination_format.extension
+        self._ouptut_filename = '.'.join(self.original_filename.split(
+            '.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
         self._t_extless_filename = 'conversion'
-        self._t_input_filename = self.t_extless_filename + '.' + self.source_format.extension
-        self._t_output_filename = self.t_extless_filename + '.' + self.destination_format.extension
+        self._t_input_filename = self.t_extless_filename + \
+            '.' + self.source_format.extension
+        self._t_output_filename = self.t_extless_filename + \
+            '.' + self.destination_format.extension
 
         # Store temporary working directory
         self._temp_directory = temp_directory
 
-    def _prepend_path(self, filename):
+    def _prepend_path(self, filename: str):
         """Prepend filename with temporary directory."""
         return self._temp_directory + '/' + filename
 
@@ -222,7 +223,7 @@ class ConversionDetails(object):
     def t_input_path(self):
         """Property for full path of temporary input file."""
         return self._prepend_path(self._t_input_filename)
-    
+
     @property
     def t_output_path(self):
         """Property for full path of temporary output file."""
@@ -283,15 +284,18 @@ class Matoconv(object):
         FormatFactory.register_formats()
 
         @self.app.route('/convert/format/<dest_filetype>', methods=['POST'])
-        def convert_file(dest_filetype):
+        def convert_file(dest_filetype: str):
             """Provide endpoint for converting files."""
 
             # Check valid destination format
             dest_format = FormatFactory.by_extension(dest_filetype)
             if dest_format is None:
-                flask.abort(404)
+                flask.abort(404, 'Invalid destination file format')
 
-            content_disp = flask.request.headers.get('Content-Disposition', None)
+            content_disp = flask.request.headers.get(
+                'Content-Disposition', None)
+            if not content_disp:
+                flask.abort(400, 'Missing Content-Disposition header')
 
             with tempfile.TemporaryDirectory() as tempdir:
 
@@ -336,23 +340,20 @@ class Matoconv(object):
             return flask.send_from_directory('static', 'index.html')
 
     @staticmethod
-    def log(msg):
+    def log(msg: str):
         """Log using the flask error log method."""
         Matoconv.get_instance().app.logger.error(msg)
 
     @staticmethod
-    def get_instance(create=False):
+    def get_instance():
         """Obtain singleton instance of Mataconv."""
-        if Matoconv.INSTANCE is None and create:
+        if Matoconv.INSTANCE is None:
             Matoconv.INSTANCE = Matoconv()
-
-        elif Matoconv.INSTANCE is None:
-            raise SingletonNotInstanciatedError('No matoconv instance exists')
 
         return Matoconv.INSTANCE
 
     @staticmethod
-    def get_conversion_command(conversion_details):
+    def get_conversion_command(conversion_details: ConversionDetails):
         """Generate conversion command based on"""
         callback = None
         cmd = None
@@ -364,7 +365,8 @@ class Matoconv(object):
             def callback(logs):
                 """Callback to rename output file"""
                 def gen_base64_img(match):
-                    fn = conversion_details.temp_directory + '/' + match.groups()[0]
+                    fn = conversion_details.temp_directory + \
+                        '/' + match.groups()[0]
                     logs.append('Converting file:' + fn)
                     if os.path.isfile(fn):
                         return 'src="data:' + mimetypes.guess_type(fn)[0] + ';base64,' + base64.b64encode(open(fn, 'rb').read()).decode('ascii') + '"'
@@ -377,7 +379,8 @@ class Matoconv(object):
                                 line = fin.readline()
                                 if not line:
                                     break
-                                fout.write(re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
+                                fout.write(
+                                    re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
 
             # Use pdftohtml command for pdf to HTML conversion
             cmd = [
@@ -400,7 +403,7 @@ class Matoconv(object):
                 'soffice',
                 '--headless',
                 '--convert-to', conversion_details.destination_format.output_filter,
-                ] + input_filter + [
+            ] + input_filter + [
                 '-env:UserInstallation=file://' + conversion_details.temp_directory,
                 '--writer',
                 '--nocrashreport',
@@ -413,14 +416,15 @@ class Matoconv(object):
         return cmd, env, callback
 
     @staticmethod
-    def perform_conversion(conversion_details):
+    def perform_conversion(conversion_details: ConversionDetails):
         """Using libreoffice, convert file to destination format."""
         logs = []
         try:
             attempts = 0
             return_logs = False
 
-            cmd, env, callback = Matoconv.get_conversion_command(conversion_details)
+            cmd, env, callback = Matoconv.get_conversion_command(
+                conversion_details)
 
             while attempts < Config.MAX_ATTEMPTS:
                 logs.append('Running cmd:')
@@ -434,7 +438,7 @@ class Matoconv(object):
 
                 # Capture response code, stdout and stderr
                 rc = p.wait()
-                logs.append('Got RC '  + str(rc))
+                logs.append('Got RC ' + str(rc))
                 logs.append(p.stdout.read().decode(
                     'utf8', errors='backslashreplace').replace('\r', ''))
                 logs.append(p.stderr.read().decode(
@@ -464,7 +468,4 @@ class Matoconv(object):
 
         finally:
             # Only return logs if an error occured
-            if return_logs:
-                return logs
-            else:
-                return []
+            return logs if return_logs else []

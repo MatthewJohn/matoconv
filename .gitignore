@@ -2,4 +2,7 @@ bin
 build
 dist
 lib
-src/matoconv.egg-info
+matoconv.egg-info
+.eggs
+matoconv/__pycache__
+tests/__pycache__
