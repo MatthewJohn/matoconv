@@ -20,7 +20,7 @@ class TestGetInstance(TestCase):
 
     def test_get(self):
         """
-        Ensure exception is raised when attempting to get_instance without creating.
+        Check that the get_instance method works as expected..
         """
         # Ensure there is no cached version
         self.assertEqual(Matoconv.INSTANCE, None)
