@@ -62,6 +62,7 @@ class TestRouteBase(TestCase):
 class TestSetup(TestRouteBase):
 
     def setUp(self) -> None:
+        """Mock objects before Matoconv object is created in setUp"""
         self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
         self.mock_register_formats = self.mock_register_formats_patcher.start()
         self.addCleanup(self.mock_register_formats_patcher.stop)
