@@ -222,12 +222,16 @@ class TestRouteConvert(TestRouteMockedBase):
         # Setup mocked temporary directory
         self.mock_temporary_directory.__enter__.return_value = '/some_temp-dir'
 
+        self.mock_open.read = mock.MagicMock()
+        self.mock_open.return_value.read.return_value = '--- OUTPUT DATA TO SEND TO USER ---'
+
         with self.client.post('/convert/format/docx',
                               headers={'Content-Disposition': 'attachment; filename="OR1g1nalFILENAME.html"'},
                               data='SOME TEST DATA FROM INPUT HTML FILE') as res:
             self.assertEquals(res.status_code, 200)
             self.assertEquals(res.headers['Content-Disposition'], 'attachment; filename=OR1g1nalFILENAME.pdf')
             self.assertEquals(res.content_type, "special-type/pdf-mime")
+            self.assertEquals(res.data, b'--- OUTPUT DATA TO SEND TO USER ---')
 
         self.mock_format_factory_by_extension.assert_called_with('docx')
         self.mock_conversion_details.assert_called_with(
@@ -235,3 +239,18 @@ class TestRouteConvert(TestRouteMockedBase):
             temp_directory='/some_temp-dir',
             dest_format=destination_format_mock
         )
+
+        # Ensure open was called as expected
+        self.mock_open.assert_has_calls([
+            # Open input file to write data.
+            mock.call('/tmp/conversion-path/temp-conversion-file.html', 'wb'),
+            mock.call().__enter__(),
+            mock.call().write(b'SOME TEST DATA FROM INPUT HTML FILE'),
+            mock.call().__exit__(None, None, None),
+
+            # Open output file to send back to user.
+            mock.call('/tmp/conversion-path/temp-conversion-file.pdf', 'rb'),
+            mock.call().__enter__(),
+            mock.call().read(),
+            mock.call().__exit__(None, None, None)
+        ])
