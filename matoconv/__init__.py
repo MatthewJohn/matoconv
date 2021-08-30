@@ -165,7 +165,7 @@ class ConversionDetails(object):
     def __init__(self,
                  content_disp_headers: str,
                  temp_directory: str,
-                 dest_format: str):
+                 dest_format: Format):
         """Setup member variables."""
         self._destination_format = dest_format
         self._content_disp_headers = content_disp_headers
