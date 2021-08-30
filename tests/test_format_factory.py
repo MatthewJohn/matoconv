@@ -28,10 +28,10 @@ class TestByExtension(TestCase):
         mocked_extension.return_value = mocked_extension_instance
 
         FormatFactory.FORMATS = [mocked_extension]
-        mocked_extension_instance.extension = 'TestExtension'
+        mocked_extension_instance.extension = 'tst'
 
         self.assertEqual(
-            self.format_factory.by_extension('TestExtension'),
+            self.format_factory.by_extension('tst'),
             mocked_extension_instance)
 
         mocked_extension.assert_called()
