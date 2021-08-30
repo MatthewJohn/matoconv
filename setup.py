@@ -29,7 +29,6 @@ setuptools.setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    scripts=['src/matoconv/server.py'],
-    package_dir={"": "src"},
+    scripts=['matoconv/server.py'],
     packages=['matoconv'],
 )
