@@ -4,7 +4,7 @@ from unittest import TestCase, mock
 from matoconv import FormatFactory, PDF, ODT, DOC, DOCX, HTML
 
 
-class TestFormatFactory(TestCase):
+class TestByExtension(TestCase):
 
     def setUp(self) -> None:
         self.format_factory = FormatFactory()
