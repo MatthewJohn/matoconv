@@ -124,3 +124,10 @@ class TestRouteConvert(TestRouteBase):
                               headers={'Content-Disposition': 'attachment; filename="example.html"'},
                               data='NotRealData') as res:
             self.assertEqual(res.status_code, 404)
+
+    def test_missing_content_disposition_header(self):
+        """Test request when missing content disposition header."""
+        with self.client.post('/convert/format/docx',
+                              headers={},
+                              data='NotRealData') as res:
+            self.assertEqual(res.status_code, 400)
