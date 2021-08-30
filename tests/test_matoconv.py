@@ -41,5 +41,3 @@ class TestGetInstance(TestCase):
 
         # Ensure instance is cached.
         self.assertEqual(Matoconv.INSTANCE, matoconv_2)
-
-
