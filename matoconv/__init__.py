@@ -294,6 +294,8 @@ class Matoconv(object):
 
             content_disp = flask.request.headers.get(
                 'Content-Disposition', None)
+            if not content_disp:
+                flask.abort(400, 'Missing Content-Disposition header')
 
             with tempfile.TemporaryDirectory() as tempdir:
 
