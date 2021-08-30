@@ -56,7 +56,7 @@ class MockConversionDetails(object):
             if self.TYPE is None:
                 warnings.warn('Type not set in MockConversionDetails')
             elif name in self._VALUES[self.TYPE]:
-                return self._VALUES[self.TYPE][name] 
+                return self._VALUES[self.TYPE][name]
         return super().__getattribute__(name)
 
 
@@ -82,12 +82,14 @@ class TestRouteMockedBase(TestRouteBase):
         @TODO Do not inherit from TestRouteBase and move mocks to actual test.
         """
         if self.MOCK_FORMAT_FACTORY_REGISTER_FORMATS:
-            self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
+            self.mock_register_formats_patcher = mock.patch(
+                'matoconv.FormatFactory.register_formats')
             self.mock_register_formats = self.mock_register_formats_patcher.start()
             self.addCleanup(self.mock_register_formats_patcher.stop)
 
         if self.MOCK_FORMAT_FACTORY_BY_EXTENSION:
-            self.mock_format_factory_by_extension_patcher = mock.patch('matoconv.FormatFactory.by_extension')
+            self.mock_format_factory_by_extension_patcher = mock.patch(
+                'matoconv.FormatFactory.by_extension')
             self.mock_format_factory_by_extension = self.mock_format_factory_by_extension_patcher.start()
             self.addCleanup(self.mock_format_factory_by_extension_patcher.stop)
 
@@ -109,19 +111,22 @@ class TestRouteMockedBase(TestRouteBase):
             self.addCleanup(self.mock_pool_patcher.stop)
 
         if self.MOCK_CONVERSION_DETAILS:
-            self.mock_conversion_details_patcher = mock.patch('matoconv.ConversionDetails')
+            self.mock_conversion_details_patcher = mock.patch(
+                'matoconv.ConversionDetails')
             self.mock_conversion_details = self.mock_conversion_details_patcher.start()
             self.addCleanup(self.mock_conversion_details_patcher.stop)
 
         if self.MOCK_OPEN:
             self.mock_open = mock.mock_open()
-            self.mock_open_patcher = mock.patch('matoconv.open', self.mock_open, create=True)
+            self.mock_open_patcher = mock.patch(
+                'matoconv.open', self.mock_open, create=True)
             self.mock_open_patcher.start()
             self.addCleanup(self.mock_open_patcher.stop)
 
         if self.MOCK_TEMPORARY_DIRECTORY:
             self.mock_temporary_directory_factory = mock.MagicMock()
-            self.mock_temporary_directory_patcher = mock.patch('matoconv.tempfile.TemporaryDirectory', self.mock_temporary_directory_factory)
+            self.mock_temporary_directory_patcher = mock.patch(
+                'matoconv.tempfile.TemporaryDirectory', self.mock_temporary_directory_factory)
             self.mock_temporary_directory_patcher.start()
             self.addCleanup(self.mock_temporary_directory_patcher.stop)
             self.mock_temporary_directory = mock.MagicMock()
@@ -173,7 +178,8 @@ class TestSetup(TestRouteMockedBase):
         # Ensure FlaskNoName is build with correct name
         self.mock_flask.assert_called_with('matoconv')
         # Assert cors called with flask app and resource config
-        self.mock_cors.assert_called_with(self.mock_flask_app, resources={r"*": {"origins": ""}})
+        self.mock_cors.assert_called_with(
+            self.mock_flask_app, resources={r"*": {"origins": ""}})
         # Assert Pool is created with correct number for threads
         self.mock_pool.assert_called_with(processes=5)
 
@@ -192,7 +198,8 @@ class TestRouteConvert(TestRouteBase):
     def test_unknown_destination_format(self):
         """Test conversion of unknown destination format."""
         with self.client.post('/convert/format/doesnotexist',
-                              headers={'Content-Disposition': 'attachment; filename="example.html"'},
+                              headers={
+                                  'Content-Disposition': 'attachment; filename="example.html"'},
                               data='NotRealData') as res:
             self.assertEqual(res.status_code, 404)
             self.assertTrue(b'Invalid destination file format' in res.data)
@@ -226,10 +233,12 @@ class TestRouteConvert(TestRouteMockedBase):
         self.mock_open.return_value.read.return_value = '--- OUTPUT DATA TO SEND TO USER ---'
 
         with self.client.post('/convert/format/docx',
-                              headers={'Content-Disposition': 'attachment; filename="OR1g1nalFILENAME.html"'},
+                              headers={
+                                  'Content-Disposition': 'attachment; filename="OR1g1nalFILENAME.html"'},
                               data='SOME TEST DATA FROM INPUT HTML FILE') as res:
             self.assertEquals(res.status_code, 200)
-            self.assertEquals(res.headers['Content-Disposition'], 'attachment; filename=OR1g1nalFILENAME.pdf')
+            self.assertEquals(
+                res.headers['Content-Disposition'], 'attachment; filename=OR1g1nalFILENAME.pdf')
             self.assertEquals(res.content_type, "special-type/pdf-mime")
             self.assertEquals(res.data, b'--- OUTPUT DATA TO SEND TO USER ---')
 
