@@ -1,7 +1,7 @@
 
 from unittest import TestCase, mock
 
-from matoconv import Matoconv, SingletonNotInstanciatedError
+from matoconv import Matoconv
 
 
 # Mock Pool, as teardown causes errors in __del__
@@ -18,25 +18,28 @@ class TestGetInstance(TestCase):
         Matoconv.INSTANCE = self.original_matoconv_instance_value
         return super().tearDown()
 
-    def test_get_without_create(self):
-        """
-        Ensure exception is raised when attempting to get_instance without creating.
-        """
-        self.assertEqual(Matoconv.INSTANCE, None)
-        with self.assertRaises(SingletonNotInstanciatedError):
-            Matoconv.get_instance(create=False)
-        self.assertEqual(Matoconv.INSTANCE, None)
-
     def test_get(self):
         """
         Ensure exception is raised when attempting to get_instance without creating.
         """
         # Ensure there is no cached version
         self.assertEqual(Matoconv.INSTANCE, None)
-        matoconv = Matoconv.get_instance(create=True)
+        matoconv = Matoconv.get_instance()
         # Ensure returned instance is an instance of Matoconv
         self.assertIsInstance(matoconv, Matoconv)
 
         # Ensure instance is cached.
         self.assertEqual(Matoconv.INSTANCE, matoconv)
+
+        # Attemp to obtain again
+        matoconv_2 = Matoconv.get_instance()
+        # Ensure returned instance is an instance of Matoconv
+        self.assertIsInstance(matoconv_2, Matoconv)
+
+        # Ensure instances are the same
+        self.assertEqual(matoconv, matoconv_2)
+
+        # Ensure instance is cached.
+        self.assertEqual(Matoconv.INSTANCE, matoconv_2)
+
 

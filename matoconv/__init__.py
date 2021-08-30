@@ -142,7 +142,7 @@ class UnknownFileTypeError(MatoconvException):
 
 
 class CannotDetectFileTypeError(MatoconvException):
-    """Cannot detect input file type"""
+    """Cannot detect input file type."""
 
     pass
 
@@ -157,14 +157,16 @@ class FlaskNoName(flask.Flask):
     """Remove server name header."""
 
     def process_response(self, response: flask.Response) -> flask.Response:
-        """Override response to remove server name"""
+        """Override response to remove server name."""
+        response = super().process_response(response)
         response.headers['server'] = __name__
-        return(response)
+        return response
 
 
 class ConversionDetails(object):
     """Struct-like object for storing details
-    about conversions, such as file paths."""
+    about conversions, such as file paths.
+    """
 
     def __init__(self,
                  content_disp_headers: str,
@@ -347,13 +349,10 @@ class Matoconv(object):
         Matoconv.get_instance().app.logger.error(msg)
 
     @staticmethod
-    def get_instance(create=False):
+    def get_instance():
         """Obtain singleton instance of Mataconv."""
-        if Matoconv.INSTANCE is None and create:
+        if Matoconv.INSTANCE is None:
             Matoconv.INSTANCE = Matoconv()
-
-        elif Matoconv.INSTANCE is None:
-            raise SingletonNotInstanciatedError('No matoconv instance exists')
 
         return Matoconv.INSTANCE
 
