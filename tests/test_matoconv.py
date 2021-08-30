@@ -14,4 +14,3 @@ class TestMatoconv(TestCase):
         matoconv.app.config['TESTING'] = True
         with matoconv.app.test_client() as client:
             yield client
-

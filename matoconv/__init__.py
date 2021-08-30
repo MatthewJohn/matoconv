@@ -184,8 +184,10 @@ class ConversionDetails(object):
             #   Strip white-space
             #   Split by equals '=' and take second element
             #   Remove any double-quotes
-            self._original_filename = self._content_disp_headers.split(';')[1].strip().split('=')[1].replace('"', '')
-            self._source_format = FormatFactory.by_extension(self._original_filename.split('.')[-1])
+            self._original_filename = self._content_disp_headers.split(
+                ';')[1].strip().split('=')[1].replace('"', '')
+            self._source_format = FormatFactory.by_extension(
+                self._original_filename.split('.')[-1])
         except ValueError:
             raise CannotDetectFileTypeError('Cannot detect input file type')
 
@@ -194,12 +196,15 @@ class ConversionDetails(object):
 
         # Generate output filename, removing the extension from the original filename
         # and adding output filetype extension.
-        self._ouptut_filename = '.'.join(self.original_filename.split('.')[:-1]) + '.' + self.destination_format.extension
+        self._ouptut_filename = '.'.join(self.original_filename.split(
+            '.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
         self._t_extless_filename = 'conversion'
-        self._t_input_filename = self.t_extless_filename + '.' + self.source_format.extension
-        self._t_output_filename = self.t_extless_filename + '.' + self.destination_format.extension
+        self._t_input_filename = self.t_extless_filename + \
+            '.' + self.source_format.extension
+        self._t_output_filename = self.t_extless_filename + \
+            '.' + self.destination_format.extension
 
         # Store temporary working directory
         self._temp_directory = temp_directory
@@ -222,7 +227,7 @@ class ConversionDetails(object):
     def t_input_path(self):
         """Property for full path of temporary input file."""
         return self._prepend_path(self._t_input_filename)
-    
+
     @property
     def t_output_path(self):
         """Property for full path of temporary output file."""
@@ -291,7 +296,8 @@ class Matoconv(object):
             if dest_format is None:
                 flask.abort(404)
 
-            content_disp = flask.request.headers.get('Content-Disposition', None)
+            content_disp = flask.request.headers.get(
+                'Content-Disposition', None)
 
             with tempfile.TemporaryDirectory() as tempdir:
 
@@ -364,7 +370,8 @@ class Matoconv(object):
             def callback(logs):
                 """Callback to rename output file"""
                 def gen_base64_img(match):
-                    fn = conversion_details.temp_directory + '/' + match.groups()[0]
+                    fn = conversion_details.temp_directory + \
+                        '/' + match.groups()[0]
                     logs.append('Converting file:' + fn)
                     if os.path.isfile(fn):
                         return 'src="data:' + mimetypes.guess_type(fn)[0] + ';base64,' + base64.b64encode(open(fn, 'rb').read()).decode('ascii') + '"'
@@ -377,7 +384,8 @@ class Matoconv(object):
                                 line = fin.readline()
                                 if not line:
                                     break
-                                fout.write(re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
+                                fout.write(
+                                    re.sub(r'src="(.*?)"', gen_base64_img, line) + '\n')
 
             # Use pdftohtml command for pdf to HTML conversion
             cmd = [
@@ -400,7 +408,7 @@ class Matoconv(object):
                 'soffice',
                 '--headless',
                 '--convert-to', conversion_details.destination_format.output_filter,
-                ] + input_filter + [
+            ] + input_filter + [
                 '-env:UserInstallation=file://' + conversion_details.temp_directory,
                 '--writer',
                 '--nocrashreport',
@@ -420,7 +428,8 @@ class Matoconv(object):
             attempts = 0
             return_logs = False
 
-            cmd, env, callback = Matoconv.get_conversion_command(conversion_details)
+            cmd, env, callback = Matoconv.get_conversion_command(
+                conversion_details)
 
             while attempts < Config.MAX_ATTEMPTS:
                 logs.append('Running cmd:')
@@ -434,7 +443,7 @@ class Matoconv(object):
 
                 # Capture response code, stdout and stderr
                 rc = p.wait()
-                logs.append('Got RC '  + str(rc))
+                logs.append('Got RC ' + str(rc))
                 logs.append(p.stdout.read().decode(
                     'utf8', errors='backslashreplace').replace('\r', ''))
                 logs.append(p.stderr.read().decode(
