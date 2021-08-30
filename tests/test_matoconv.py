@@ -131,3 +131,4 @@ class TestRouteConvert(TestRouteBase):
                               headers={},
                               data='NotRealData') as res:
             self.assertEqual(res.status_code, 400)
+            self.assertTrue(b'Missing Content-Disposition header' in res.data)
