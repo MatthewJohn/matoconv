@@ -49,6 +49,7 @@ class TestRouteBase(TestCase):
         """Create test instance of Matoconv"""
         # Create instance of Matoconv
         self.matoconv = Matoconv()
+
         # Update flask app config for testing
         self.matoconv.app.config['TESTING'] = True
         self.matoconv.app.config['WTF_CSRF_ENABLED'] = False
@@ -57,6 +58,18 @@ class TestRouteBase(TestCase):
         self.client = self.matoconv.app.test_client()
         return super().setUp()
 
+
+class TestSetup(TestRouteBase):
+
+    def setUp(self) -> None:
+        self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
+        self.mock_register_formats = self.mock_register_formats_patcher.start()
+        self.addCleanup(self.mock_register_formats_patcher.stop)
+        return super().setUp()
+
+    def test_ensure_format_factory_setup(self):
+        """Ensure register formats was called."""
+        self.mock_register_formats.assert_called()
 
 class TestRouteIndex(TestRouteBase):
 
