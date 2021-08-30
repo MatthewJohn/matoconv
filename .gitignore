@@ -5,3 +5,4 @@ lib
 matoconv.egg-info
 .eggs
 matoconv/__pycache__
+tests/__pycache__
