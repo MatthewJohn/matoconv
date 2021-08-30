@@ -473,7 +473,4 @@ class Matoconv(object):
 
         finally:
             # Only return logs if an error occured
-            if return_logs:
-                return logs
-            else:
-                return []
+            return logs if return_logs else []
