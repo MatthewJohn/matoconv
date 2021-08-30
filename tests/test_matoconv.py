@@ -1,9 +1,11 @@
 
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from matoconv import Matoconv, SingletonNotInstanciatedError
 
 
+# Mock Pool, as teardown causes errors in __del__
+@mock.Mock('matoconv.Pool')
 class TestGetInstance(TestCase):
 
     def setUp(self) -> None:
