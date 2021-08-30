@@ -1,6 +1,7 @@
 
 import setuptools
 
+
 with open('requirements.txt') as f:
     INSTALL_REQUIRES = f.read().strip().split('\n')
 
