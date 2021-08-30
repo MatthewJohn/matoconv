@@ -147,12 +147,6 @@ class CannotDetectFileTypeError(MatoconvException):
     pass
 
 
-class SingletonNotInstanciatedError(MatoconvException):
-    """Singleton instance has not been instanciated."""
-
-    pass
-
-
 class FlaskNoName(flask.Flask):
     """Remove server name header."""
 
