@@ -63,11 +63,13 @@ class MockConversionDetails(object):
 class TestRouteMockedBase(TestRouteBase):
 
     MOCK_APP = True
-    MOCK_REGISTER_FORMATS = True
+    MOCK_FORMAT_FACTORY_REGISTER_FORMATS = True
     MOCK_CORS = True
     MOCK_POOL = True
     MOCK_CONVERSION_DETAILS = True
+    MOCK_FORMAT_FACTORY_BY_EXTENSION = True
     MOCK_OPEN = True
+    MOCK_TEMPORARY_DIRECTORY = True
 
     def setUp(self) -> None:
         """Create mocks and call setup setup."""
@@ -79,10 +81,15 @@ class TestRouteMockedBase(TestRouteBase):
         Mock objects before Matoconv object is created in setUp.
         @TODO Do not inherit from TestRouteBase and move mocks to actual test.
         """
-        if self.MOCK_REGISTER_FORMATS:
+        if self.MOCK_FORMAT_FACTORY_REGISTER_FORMATS:
             self.mock_register_formats_patcher = mock.patch('matoconv.FormatFactory.register_formats')
             self.mock_register_formats = self.mock_register_formats_patcher.start()
             self.addCleanup(self.mock_register_formats_patcher.stop)
+
+        if self.MOCK_FORMAT_FACTORY_BY_EXTENSION:
+            self.mock_format_factory_by_extension_patcher = mock.patch('matoconv.FormatFactory.by_extension')
+            self.mock_format_factory_by_extension = self.mock_format_factory_by_extension_patcher.start()
+            self.addCleanup(self.mock_format_factory_by_extension_patcher.stop)
 
         if self.MOCK_APP:
             self.mock_flask_patcher = mock.patch('matoconv.FlaskNoName')
@@ -111,6 +118,14 @@ class TestRouteMockedBase(TestRouteBase):
             self.mock_open_patcher = mock.patch('matoconv.open', self.mock_open, create=True)
             self.mock_open_patcher.start()
             self.addCleanup(self.mock_open_patcher.stop)
+
+        if self.MOCK_TEMPORARY_DIRECTORY:
+            self.mock_temporary_directory_factory = mock.MagicMock()
+            self.mock_temporary_directory_patcher = mock.patch('matoconv.tempfile.TemporaryDirectory', self.mock_temporary_directory_factory)
+            self.mock_temporary_directory_patcher.start()
+            self.addCleanup(self.mock_temporary_directory_patcher.stop)
+            self.mock_temporary_directory = mock.MagicMock()
+            self.mock_temporary_directory_factory.return_value = self.mock_temporary_directory
 
 
 class TestGetInstance(TestRouteMockedBase):
@@ -201,9 +216,22 @@ class TestRouteConvert(TestRouteMockedBase):
         MockConversionDetails.TYPE = 1
         self.mock_conversion_details.return_value = MockConversionDetails()
 
+        destination_format_mock = mock.MagicMock()
+        self.mock_format_factory_by_extension.return_value = destination_format_mock
+
+        # Setup mocked temporary directory
+        self.mock_temporary_directory.__enter__.return_value = '/some_temp-dir'
+
         with self.client.post('/convert/format/docx',
                               headers={'Content-Disposition': 'attachment; filename="OR1g1nalFILENAME.html"'},
                               data='SOME TEST DATA FROM INPUT HTML FILE') as res:
             self.assertEquals(res.status_code, 200)
             self.assertEquals(res.headers['Content-Disposition'], 'attachment; filename=OR1g1nalFILENAME.pdf')
             self.assertEquals(res.content_type, "special-type/pdf-mime")
+
+        self.mock_format_factory_by_extension.assert_called_with('docx')
+        self.mock_conversion_details.assert_called_with(
+            content_disp_headers='attachment; filename="OR1g1nalFILENAME.html"',
+            temp_directory='/some_temp-dir',
+            dest_format=destination_format_mock
+        )
