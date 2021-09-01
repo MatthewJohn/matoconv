@@ -257,11 +257,11 @@ class TestRouteConvert(TestRouteMockedBase):
                               headers={
                                   'Content-Disposition': 'attachment; filename="OR1g1nalFILENAME.html"'},
                               data='SOME TEST DATA FROM INPUT HTML FILE') as res:
-            self.assertEquals(res.status_code, 200)
-            self.assertEquals(
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(
                 res.headers['Content-Disposition'], 'attachment; filename=OR1g1nalFILENAME.pdf')
-            self.assertEquals(res.content_type, "special-type/pdf-mime")
-            self.assertEquals(res.data, b'--- OUTPUT DATA TO SEND TO USER ---')
+            self.assertEqual(res.content_type, "special-type/pdf-mime")
+            self.assertEqual(res.data, b'--- OUTPUT DATA TO SEND TO USER ---')
 
         self.mock_format_factory_by_extension.assert_called_with('docx')
         self.mock_conversion_details.assert_called_with(
