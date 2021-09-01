@@ -70,6 +70,8 @@ class TestRouteMockedBase(TestRouteBase):
     MOCK_FORMAT_FACTORY_BY_EXTENSION = True
     MOCK_OPEN = True
     MOCK_TEMPORARY_DIRECTORY = True
+    MOCK_SUBPROCESS = True
+    MOCK_OS = True
 
     def setUp(self) -> None:
         """Create mocks and call setup setup."""
@@ -107,8 +109,10 @@ class TestRouteMockedBase(TestRouteBase):
 
         if self.MOCK_POOL:
             self.mock_pool_patcher = mock.patch('matoconv.Pool')
-            self.mock_pool = self.mock_pool_patcher.start()
+            self.mock_pool_class = self.mock_pool_patcher.start()
             self.addCleanup(self.mock_pool_patcher.stop)
+            self.mock_pool = mock.MagicMock()
+            self.mock_pool_class.return_value = self.mock_pool
 
         if self.MOCK_CONVERSION_DETAILS:
             self.mock_conversion_details_patcher = mock.patch(
@@ -131,6 +135,18 @@ class TestRouteMockedBase(TestRouteBase):
             self.addCleanup(self.mock_temporary_directory_patcher.stop)
             self.mock_temporary_directory = mock.MagicMock()
             self.mock_temporary_directory_factory.return_value = self.mock_temporary_directory
+
+        if self.MOCK_SUBPROCESS:
+            self.mock_subprocess = mock.MagicMock()
+            self.mock_subprocess_patcher = mock.patch('matoconv.subprocess', self.mock_subprocess)
+            self.mock_subprocess_patcher.start()
+            self.addCleanup(self.mock_subprocess_patcher.stop)
+
+        if self.MOCK_OS:
+            self.mock_os = mock.MagicMock()
+            self.mock_os_patcher = mock.patch('matoconv.os', self.mock_os)
+            self.mock_os_patcher.start()
+            self.addCleanup(self.mock_os_patcher.stop)
 
 
 class TestGetInstance(TestRouteMockedBase):
@@ -181,7 +197,7 @@ class TestSetup(TestRouteMockedBase):
         self.mock_cors.assert_called_with(
             self.mock_flask_app, resources={r"*": {"origins": ""}})
         # Assert Pool is created with correct number for threads
-        self.mock_pool.assert_called_with(processes=5)
+        self.mock_pool_class.assert_called_with(processes=5)
 
 
 class TestRouteIndex(TestRouteBase):
@@ -221,10 +237,15 @@ class TestRouteConvert(TestRouteMockedBase):
 
         # Update conversion details mock init to return mock object
         MockConversionDetails.TYPE = 1
-        self.mock_conversion_details.return_value = MockConversionDetails()
+        mock_conversion_details_obj = MockConversionDetails()
+        self.mock_conversion_details.return_value = mock_conversion_details_obj
 
         destination_format_mock = mock.MagicMock()
         self.mock_format_factory_by_extension.return_value = destination_format_mock
+
+        # Mock pool apply_async return object
+        mock_apply_async_task = mock.MagicMock()
+        self.mock_pool.apply_async.return_value = mock_apply_async_task
 
         # Setup mocked temporary directory
         self.mock_temporary_directory.__enter__.return_value = '/some_temp-dir'
@@ -249,6 +270,11 @@ class TestRouteConvert(TestRouteMockedBase):
             dest_format=destination_format_mock
         )
 
+        # Ensure object is added to pool and callto get response was made
+        self.mock_pool.apply_async.assert_called_with(
+            self.matoconv.perform_conversion, (mock_conversion_details_obj, ))
+        mock_apply_async_task.get.assert_called_with(timeout=60)
+
         # Ensure open was called as expected
         self.mock_open.assert_has_calls([
             # Open input file to write data.
@@ -263,3 +289,55 @@ class TestRouteConvert(TestRouteMockedBase):
             mock.call().read(),
             mock.call().__exit__(None, None, None)
         ])
+
+
+class TestPerformConversion(TestRouteMockedBase):
+
+    def test_full_single_run(self):
+        """Test full conversion with single attempt."""
+        MockConversionDetails.TYPE = 1
+        mock_conversion_details = MockConversionDetails()
+
+        with mock.patch('matoconv.Matoconv.get_conversion_command') as mock_get_conversion_command:
+
+            mock_cmd = ['A', 'command', 'to', 'Run!']
+            mock_env = {
+                'some': 'environment',
+                'variables': 'go',
+                'here': '!'
+            }
+            mock_callback = mock.MagicMock()
+            mock_get_conversion_command.return_value = mock_cmd, mock_env, mock_callback
+
+            # Return value for process itself
+            mock_process = mock.MagicMock()
+            self.mock_subprocess.Popen.return_value = mock_process
+
+            # Set return command RC
+            mock_process.wait.return_value = 0
+
+            # Return that output file was create
+            self.mock_os.path.isfile.return_value = True
+
+            # Perform conversion
+            response = self.matoconv.perform_conversion(mock_conversion_details)
+
+            mock_process.wait.assert_called()
+
+            self.assertTrue(isinstance(response, list))
+            self.assertEqual(len(response), 0)
+
+            mock_get_conversion_command.assert_called_once_with(mock_conversion_details)
+
+            self.mock_subprocess.Popen.assert_called_once_with(
+                mock_cmd,
+                stderr=self.mock_subprocess.PIPE,
+                stdout=self.mock_subprocess.PIPE,
+                cwd='/tmp/conversion-path',
+                env=mock_env)
+
+            # Ensure callback was called with empty logs
+            mock_callback.assert_called()
+
+            self.mock_os.path.isfile.assert_called_once_with('/tmp/conversion-path/temp-conversion-file.pdf')
+
