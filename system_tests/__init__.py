@@ -68,14 +68,18 @@ class TestByExtension(TestRouteBase):
             fh.write(res.data)
 
     def _screenshot_files(self, file_spec: FileSpec):
-        for file_, extension, screenhot_file in [
+        for file_, extension, screenshot_file in [
                 [file_spec.input_file, file_spec.input_extension, file_spec.input_screenshot],
                 [file_spec.output_file, file_spec.output_extension, file_spec.output_screenshot]]:
             if extension in ['doc', 'docx', 'odt']:
                 cmd = ['libreoffice', '--convert-to', 'jpg', file_]
 
+            elif extension in ['html']:
+                cmd = ['firefox', f'file://{file_}', '--screenshot', screenshot_file]
+
             else:
-                cmd = ['convert', file_, screenhot_file]
+                cmd = ['convert', file_, screenshot_file]
+
             proc = subprocess.Popen(cmd, cwd=file_spec.cwd)
             rc = proc.wait()
             self.assertEqual(rc, 0)                
