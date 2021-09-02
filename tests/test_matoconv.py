@@ -26,6 +26,12 @@ class TestRouteBase(TestCase):
         self.create_matoconv_object()
         self.create_test_client()
 
+    def tearDown(self) -> None:
+        """Tear down matoconv instance."""
+        self.matoconv = None
+        Matoconv.INSTANCE = None
+        return super().tearDown()
+
 
 class MockConversionDetails(object):
 
