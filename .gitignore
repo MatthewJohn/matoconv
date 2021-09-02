@@ -4,7 +4,7 @@ dist
 lib
 matoconv.egg-info
 .eggs
-matoconv/__pycache__
-tests/__pycache__
+*/__pycache__
 
 system_tests/files/output*
+system_tests/files/input*.jpg
