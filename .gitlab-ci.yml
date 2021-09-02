@@ -31,8 +31,8 @@ docker-build:
       fi
     - docker build --pull --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy -t "$CI_REGISTRY_IMAGE${tag}" .
     - docker push "$CI_REGISTRY_IMAGE${tag}"
-    - docker tag "$CI_REGISTRY_IMAGE${tag}" $CI_REGISTRY_IMAGE:test-$CI_COMMIT_BRANCH
-    - docker push $CI_REGISTRY_IMAGE:test-$CI_COMMIT_BRANCH
+    - docker tag "$CI_REGISTRY_IMAGE${tag}" $CI_REGISTRY_IMAGE:test-$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:test-$CI_COMMIT_REF_SLUG
   # Run this job in a branch where a Dockerfile exists
   rules:
     - if: $CI_COMMIT_BRANCH
@@ -41,7 +41,7 @@ docker-build:
 
 test:
   image:
-    name: $CI_REGISTRY_IMAGE:test-$CI_COMMIT_BRANCH
+    name: $CI_REGISTRY_IMAGE:test-$CI_COMMIT_REF_SLUG
     entrypoint: [/bin/bash]
   stage: test
   script:
