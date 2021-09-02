@@ -53,10 +53,14 @@ class FileSpec(object):
 
 class TestByExtension(TestRouteBase):
 
+    def setUp(self) -> None:
+        """Create required mocks/objects for tests."""
+        self.create_test_client()
+
     def _convert_file(self, file_spec: FileSpec):
         with open(file_spec.input_file, 'rb') as fh:
             in_data = fh.read()
-        with self.client() as client:
+        with self.client as client:
             res = client.post(
                 'http://localhost:8091/convert/format/docx',
                 headers={'Content-Disposition': 'attachment; filename="input_a.odt"'},
