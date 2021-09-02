@@ -5,7 +5,7 @@ import subprocess
 from PIL import Image
 
 from matoconv import Matoconv
-from tests import TestRouteBase
+from tests.test_matoconv import TestRouteBase
 
 
 class FileSpec(object):
