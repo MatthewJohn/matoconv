@@ -44,7 +44,7 @@ class FileSpec(object):
 
     @property
     def reference_deltas(self):
-        return self.templated_name('input_output_diff', f'{self.output_extension}-txt')
+        return self.templated_name('input_output_diff', 'txt')
 
     @property
     def input_screenshot(self):
@@ -68,14 +68,17 @@ class TestByExtension(TestRouteBase):
             fh.write(res.data)
 
     def _screenshot_files(self, file_spec: FileSpec):
-        for file_, extension in [
-                [file_spec.input_file, file_spec.input_extension],
-                [file_spec.output_file, file_spec.output_extension]]:
+        for file_, extension, screenhot_file in [
+                [file_spec.input_file, file_spec.input_extension, file_spec.input_screenshot],
+                [file_spec.output_file, file_spec.output_extension, file_spec.output_screenshot]]:
             if extension in ['doc', 'docx', 'odt']:
-                proc = subprocess.Popen(['libreoffice', '--convert-to', 'jpg', file_], cwd=file_spec.cwd)
-                rc = proc.wait()
-                self.assertEqual(rc, 0)
-                continue
+                cmd = ['libreoffice', '--convert-to', 'jpg', file_]
+
+            else:
+                cmd = ['convert', file_, screenhot_file]
+            proc = subprocess.Popen(cmd, cwd=file_spec.cwd)
+            rc = proc.wait()
+            self.assertEqual(rc, 0)                
 
     def _compare_files(self, file_spec: FileSpec):
         reference_image = Image.open(file_spec.reference_output_screenshot)
@@ -122,10 +125,20 @@ class TestByExtension(TestRouteBase):
 
         return total
 
-    def test_comparison(self):
+    def _perform_test(self, file_name, input_extension, output_extension):
+            file_spec = FileSpec(file_name, input_extension, output_extension)
+            self._convert_file(file_spec)
+            self._screenshot_files(file_spec)
+            self._compare_files(file_spec)
 
-        file_spec = FileSpec('a', 'odt', 'docx')
-        self._convert_file(file_spec)
-        self._screenshot_files(file_spec)
-        self._compare_files(file_spec)
-        #self._compare_files(file_spec.input_screenshot, file_spec.output_screenshot)
+    def test_comparison_a_odt_docx(self):
+        self._perform_test('a', 'odt', 'docx')
+
+    def test_comparison_a_odt_doc(self):
+        self._perform_test('b', 'odt', 'doc')
+
+    def test_comparison_a_odt_pdf(self):
+        self._perform_test('c', 'odt', 'pdf')
+
+    def test_comparison_a_odt_html(self):
+        self._perform_test('d', 'odt', 'html')
