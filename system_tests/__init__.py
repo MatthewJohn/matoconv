@@ -86,17 +86,26 @@ class TestByExtension(TestRouteBase):
         block_height = 20
         block_width = 20
 
+
+        pixels_reference = []
+        pixels_test = []
+
+        pixels_test_diff = []
+        pixels_reference_diff = []
         with open(file_spec.reference_deltas, 'r') as delta_fh:
             for y in range(0, height, block_height+1):
                 for x in range(0, width, block_width+1):
-                    pixels_reference = self.process_block(test_image, x, y, block_width, block_height)
-                    pixels_test = self.process_block(reference_image, x, y, block_width, block_height)
+                    test_pixel = self.process_block(test_image, x, y, block_width, block_height)
+                    pixels_test.append(test_pixel)
+                    pixels_reference.append(self.process_block(reference_image, x, y, block_width, block_height))
                     pixels_input = self.process_block(input_image, x, y, block_width, block_height)
 
-                    input_test_diff = pixels_input - pixels_test
+                    input_test_diff = pixels_input - test_pixel
+                    pixels_test_diff.append(input_test_diff)
                     #delta_fh.write(str(input_test_diff) + "\n")
-                    self.assertEqual(int(delta_fh.readline()), input_test_diff)
-                    self.assertEqual(pixels_reference, pixels_test)
+                    pixels_reference_diff.append(int(delta_fh.readline()))
+        self.assertEqual(pixels_reference, pixels_test)
+        self.assertEqual(pixels_reference_diff, pixels_test_diff)
 
     def process_block(self, image, x, y, width, height):
         total = 0
