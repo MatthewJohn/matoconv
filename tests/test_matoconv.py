@@ -138,7 +138,8 @@ class TestRouteMockedBase(TestRouteBase):
 
         if self.MOCK_SUBPROCESS:
             self.mock_subprocess = mock.MagicMock()
-            self.mock_subprocess_patcher = mock.patch('matoconv.subprocess', self.mock_subprocess)
+            self.mock_subprocess_patcher = mock.patch(
+                'matoconv.subprocess', self.mock_subprocess)
             self.mock_subprocess_patcher.start()
             self.addCleanup(self.mock_subprocess_patcher.stop)
 
@@ -320,14 +321,16 @@ class TestPerformConversion(TestRouteMockedBase):
             self.mock_os.path.isfile.return_value = True
 
             # Perform conversion
-            response = self.matoconv.perform_conversion(mock_conversion_details)
+            response = self.matoconv.perform_conversion(
+                mock_conversion_details)
 
             mock_process.wait.assert_called()
 
             self.assertTrue(isinstance(response, list))
             self.assertEqual(len(response), 0)
 
-            mock_get_conversion_command.assert_called_once_with(mock_conversion_details)
+            mock_get_conversion_command.assert_called_once_with(
+                mock_conversion_details)
 
             self.mock_subprocess.Popen.assert_called_once_with(
                 mock_cmd,
@@ -339,5 +342,5 @@ class TestPerformConversion(TestRouteMockedBase):
             # Ensure callback was called with empty logs
             mock_callback.assert_called()
 
-            self.mock_os.path.isfile.assert_called_once_with('/tmp/conversion-path/temp-conversion-file.pdf')
-
+            self.mock_os.path.isfile.assert_called_once_with(
+                '/tmp/conversion-path/temp-conversion-file.pdf')
