@@ -10,26 +10,6 @@
 # This template uses one generic job with conditional builds
 # for the default branch and all other (MR) branches.
 
-test:
-  image: python:latest
-  stage: test
-  script:
-    - mkdir -p /usr/share/man/man1
-    - apt-get update && apt-get -y install \
-        git \
-        unoconv \
-        ttf-wqy-zenhei \
-        fonts-arphic-ukai \
-        fonts-arphic-uming \
-        fonts-indic \
-        python3 \
-        python3-pip \
-        libreoffice \
-        pdftohtml \
-        && rm -rf /var/lib/apt/lists/*
-    - pip3 install -r ./requirements.system-tests.txt
-    - python ./setup.py test
-
 docker-build:
   # Use the official docker image.
   image: docker:latest
@@ -56,3 +36,10 @@ docker-build:
     - if: $CI_COMMIT_BRANCH
       exists:
         - Dockerfile
+
+test:
+  image: $CI_REGISTRY_IMAGE${tag}
+  stage: test
+  script:
+    - pip3 install -r ./requirements.system-tests.txt
+    - python ./setup.py test
