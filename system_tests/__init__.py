@@ -1,11 +1,11 @@
 
 import os
 import subprocess
-from unittest import TestCase, mock
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
-import requests
+from matoconv import Matoconv
+from tests import TestRouteBase
 
 
 class FileSpec(object):
@@ -51,15 +51,16 @@ class FileSpec(object):
         return self.templated_name('input', self.screenshot_extension)
 
 
-class TestByExtension(TestCase):
+class TestByExtension(TestRouteBase):
 
     def _convert_file(self, file_spec: FileSpec):
         with open(file_spec.input_file, 'rb') as fh:
             in_data = fh.read()
-        res = requests.post(
-            'http://localhost:8091/convert/format/docx',
-            headers={'Content-Disposition': 'attachment; filename="input_a.odt"'},
-            data=in_data)
+        with self.client() as client:
+            res = client.post(
+                'http://localhost:8091/convert/format/docx',
+                headers={'Content-Disposition': 'attachment; filename="input_a.odt"'},
+                data=in_data)
 
         self.assertEqual(res.status_code, 200)
 
