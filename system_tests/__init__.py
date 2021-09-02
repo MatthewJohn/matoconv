@@ -65,7 +65,7 @@ class TestByExtension(TestRouteBase):
         self.assertEqual(res.status_code, 200)
 
         with open(file_spec.output_file, 'wb') as fh:
-            fh.write(res.content)
+            fh.write(res.data)
 
     def _screenshot_files(self, file_spec: FileSpec):
         for file_, extension in [

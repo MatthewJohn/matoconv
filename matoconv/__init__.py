@@ -339,6 +339,11 @@ class Matoconv(object):
         def index():  # pragma: no cover
             return flask.send_from_directory('static', 'index.html')
 
+    def __del__(self):
+        """Close threading pool."""
+        self.converter_pool.close()
+        self.converter_pool.terminate()
+
     @staticmethod
     def log(msg: str):
         """Log using the flask error log method."""
