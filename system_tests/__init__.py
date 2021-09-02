@@ -44,7 +44,7 @@ class FileSpec(object):
 
     @property
     def reference_deltas(self):
-        return self.templated_name('reference', 'txt')
+        return self.templated_name('input_output_diff', f'{self.output_extension}-txt')
 
     @property
     def input_screenshot(self):
