@@ -80,7 +80,8 @@ class TestByExtension(TestRouteBase):
                 cmd = ['libreoffice', '--convert-to', 'jpg', file_]
 
             elif extension in ['html']:
-                cmd = ['firefox', f'file://{file_}', '--screenshot', screenshot_file]
+                cmd = ['chromium', '--headless', '--no-sandbox',
+                       f'--screenshot={screenshot_file}', f'"file://{file_}"']
 
             else:
                 cmd = ['convert', file_, screenshot_file]
