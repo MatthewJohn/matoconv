@@ -6,3 +6,5 @@ matoconv.egg-info
 .eggs
 matoconv/__pycache__
 tests/__pycache__
+
+system_tests/files/output*
