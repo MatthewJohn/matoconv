@@ -41,7 +41,7 @@ docker-build:
 test:
   image:
     name: matoconv-test
-    entrypoint: /bin/bash
+    entrypoint: [/bin/bash]
   stage: test
   script:
     - pip3 install -r ./requirements.system-tests.txt
