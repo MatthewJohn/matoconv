@@ -101,7 +101,7 @@ class TestConversionComparison(TestRouteBase):
             stdout = open(screenshot_file, 'wb') if to_stdout else subprocess.PIPE
             with subprocess.Popen(cmd, cwd=file_spec.cwd,
                                   stdout=stdout,
-                                  #stderr=subprocess.PIPE
+                                  stderr=subprocess.PIPE
                                   ) as proc:
                 rc = proc.wait()
                 self.assertEqual(rc, 0)
