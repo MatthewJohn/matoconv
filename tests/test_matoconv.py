@@ -7,19 +7,21 @@ from matoconv import Matoconv, PDF, HTML
 
 class TestRouteBase(TestCase):
 
-    def create_matoconv_object(self):
+    @classmethod
+    def create_matoconv_object(cls):
         """Create test instance of Matoconv"""
         # Create instance of Matoconv
-        self.matoconv = Matoconv()
+        cls.matoconv = Matoconv()
 
         # Update flask app config for testing
-        self.matoconv.app.config['TESTING'] = True
-        self.matoconv.app.config['WTF_CSRF_ENABLED'] = False
-        self.matoconv.app.config['DEBUG'] = False
+        cls.matoconv.app.config['TESTING'] = True
+        cls.matoconv.app.config['WTF_CSRF_ENABLED'] = False
+        cls.matoconv.app.config['DEBUG'] = False
 
-    def create_test_client(self):
+    @classmethod
+    def create_test_client(cls):
         """Create client for running test requests."""
-        self.client = self.matoconv.app.test_client()
+        cls.client = cls.matoconv.app.test_client()
 
     def setUp(self) -> None:
         """Create required mocks/objects for tests."""

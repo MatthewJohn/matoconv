@@ -1,6 +1,7 @@
 
 import os
 import subprocess
+from unittest import TestCase
 
 from PIL import Image
 
@@ -56,9 +57,17 @@ class FileSpec(object):
         return self.templated_name('input', self.screenshot_extension, with_path=True)
 
 
-class TestByExtension(TestRouteBase):
+class TestConversionComparison(TestRouteBase):
 
-    def _convert_file(self, file_spec: FileSpec):
+    def setUp(self) -> None:
+        return super(TestRouteBase, self).setUp()
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.create_matoconv_object()
+        cls.create_test_client()
+
+    def _convert_file(self, file_spec: FileSpec) -> None:
         with open(file_spec.input_file_path, 'rb') as fh:
             in_data = fh.read()
         with self.client as client:
@@ -89,7 +98,7 @@ class TestByExtension(TestRouteBase):
                 cmd = ['pdftoppm', '-jpeg', file_]
                 to_stdout = True
 
-            stdout = open(file_, 'wb') if to_stdout else subprocess.PIPE
+            stdout = open(screenshot_file, 'wb') if to_stdout else subprocess.PIPE
             with subprocess.Popen(cmd, cwd=file_spec.cwd,
                                   stdout=stdout,
                                   #stderr=subprocess.PIPE
@@ -114,7 +123,7 @@ class TestByExtension(TestRouteBase):
 
         pixels_input_diff = []
         pixels_expected_input_diff = []
-        with open(file_spec.reference_deltas, 'w') as delta_fh:
+        with open(file_spec.reference_deltas, 'r') as delta_fh:
             for y in range(0, height, block_height+1):
                 for x in range(0, width, block_width+1):
                     test_pixel = self.process_block(test_image, x, y, block_width, block_height)
@@ -127,8 +136,8 @@ class TestByExtension(TestRouteBase):
                     pixels_input_diff.append(input_test_diff)
                     # Obtain expected diff of pixels between input and output file
                     # from reference_deltas file
-                    delta_fh.write(str(input_test_diff) + "\n")
-                    #pixels_expected_input_diff.append(int(delta_fh.readline()))
+                    #delta_fh.write(str(input_test_diff) + "\n")
+                    pixels_expected_input_diff.append(int(delta_fh.readline()))
         self.assertEqual(pixels_reference, pixels_test)
         #self.assertEqual(pixels_expected_input_diff, pixels_input_diff)
 
