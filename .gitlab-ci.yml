@@ -10,12 +10,6 @@
 # This template uses one generic job with conditional builds
 # for the default branch and all other (MR) branches.
 
-test:
-  image: python:latest
-  stage: test
-  script:
-    - python ./setup.py test
-
 docker-build:
   # Use the official docker image.
   image: docker:latest
@@ -37,8 +31,19 @@ docker-build:
       fi
     - docker build --pull --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy -t "$CI_REGISTRY_IMAGE${tag}" .
     - docker push "$CI_REGISTRY_IMAGE${tag}"
+    - docker tag "$CI_REGISTRY_IMAGE${tag}" $CI_REGISTRY_IMAGE:test-$CI_COMMIT_REF_SLUG
+    - docker push $CI_REGISTRY_IMAGE:test-$CI_COMMIT_REF_SLUG
   # Run this job in a branch where a Dockerfile exists
   rules:
     - if: $CI_COMMIT_BRANCH
       exists:
         - Dockerfile
+
+test:
+  image:
+    name: $CI_REGISTRY_IMAGE:test-$CI_COMMIT_REF_SLUG
+    entrypoint: [""]
+  stage: test
+  script:
+    - ./scripts/install_system_test_dependencies.sh
+    - python3 ./setup.py test
