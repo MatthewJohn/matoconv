@@ -4,8 +4,9 @@ rm -rf build matoconv.egg-info dist
 
 docker build . -t matoconv-test
 docker run -p8091:8091 --name=matoconv-test -d matoconv-test
-
+docker exec -ti matoconv-test scripts/install_system_test_dependencies.sh
 docker logs -f matoconv-test &
+
 echo 'Running on :8091. Press <Enter> to stop and destroy'
 read
 

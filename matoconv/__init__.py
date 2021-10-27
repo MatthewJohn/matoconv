@@ -167,11 +167,11 @@ class ConversionDetails(object):
                  temp_directory: str,
                  dest_format: Format):
         """Setup member variables."""
-        self._destination_format = dest_format
-        self._content_disp_headers = content_disp_headers
+        self._destination_format: Format = dest_format
+        self._content_disp_headers: str = content_disp_headers
 
-        self._original_filename = None
-        self._source_format = None
+        self._original_filename: str = None
+        self._source_format: Format = None
         try:
             # Example content-disposition header:
             #    attachment; filename="example.html"
@@ -192,80 +192,80 @@ class ConversionDetails(object):
 
         # Generate output filename, removing the extension from the original filename
         # and adding output filetype extension.
-        self._ouptut_filename = '.'.join(self.original_filename.split(
+        self._ouptut_filename: str = '.'.join(self.original_filename.split(
             '.')[:-1]) + '.' + self.destination_format.extension
 
         # Create temporary file names for connversion
-        self._t_extless_filename = 'conversion'
-        self._t_input_filename = self.t_extless_filename + \
+        self._t_extless_filename: str = 'conversion'
+        self._t_input_filename: str = self.t_extless_filename + \
             '.' + self.source_format.extension
-        self._t_output_filename = self.t_extless_filename + \
+        self._t_output_filename: str = self.t_extless_filename + \
             '.' + self.destination_format.extension
 
         # Store temporary working directory
-        self._temp_directory = temp_directory
+        self._temp_directory: str = temp_directory
 
-    def _prepend_path(self, filename: str):
+    def _prepend_path(self, filename: str) -> str:
         """Prepend filename with temporary directory."""
         return self._temp_directory + '/' + filename
 
     @property
-    def original_filename(self):
+    def original_filename(self) -> str:
         """Return the original filename."""
         return self._original_filename
 
     @property
-    def response_mime_type(self):
+    def response_mime_type(self) -> str:
         """Return response mime type."""
         return self._destination_format.content_type
 
     @property
-    def t_input_path(self):
+    def t_input_path(self) -> str:
         """Property for full path of temporary input file."""
         return self._prepend_path(self._t_input_filename)
 
     @property
-    def t_output_path(self):
+    def t_output_path(self) -> str:
         """Property for full path of temporary output file."""
         return self._prepend_path(self._t_output_filename)
 
     @property
-    def t_input_filename(self):
+    def t_input_filename(self) -> str:
         """Property for name of temporary input file."""
         return self._t_input_filename
 
     @property
-    def t_output_filename(self):
+    def t_output_filename(self) -> str:
         """Property for name of temporary output file."""
         return self._t_output_filename
 
     @property
-    def t_extless_filename(self):
+    def t_extless_filename(self) -> str:
         """Property for name of temporary filename without extension."""
         return self._t_extless_filename
 
     @property
-    def t_extless_path(self):
+    def t_extless_path(self) -> str:
         """Property for name of temporary path without extension."""
         return self._prepend_path(self._t_extless_filename)
 
     @property
-    def ouptut_filename(self):
+    def ouptut_filename(self) -> str:
         """Property for name of output file to be returned."""
         return self._ouptut_filename
 
     @property
-    def temp_directory(self):
+    def temp_directory(self) -> str:
         """Property for path of the temporary directory for working."""
         return self._temp_directory
 
     @property
-    def destination_format(self):
+    def destination_format(self) -> Format:
         """Property for destination file format class."""
         return self._destination_format
 
     @property
-    def source_format(self):
+    def source_format(self) -> Format:
         """Property for source file format class."""
         return self._source_format
 
@@ -338,6 +338,11 @@ class Matoconv(object):
         @self.app.route('/', methods=['GET'])
         def index():  # pragma: no cover
             return flask.send_from_directory('static', 'index.html')
+
+    def __del__(self):
+        """Close threading pool."""
+        self.converter_pool.close()
+        self.converter_pool.terminate()
 
     @staticmethod
     def log(msg: str):
